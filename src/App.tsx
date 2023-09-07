@@ -1,10 +1,14 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
+import * as shp from 'shapefile';
+import * as domParser from 'xmldom';
+import tj from 'togeojson';
 import './App.css';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
+  const [geoJsonData, setGeoJsonData] = useState<any>(null);
 
   // A list of all accepted file types.
   const accept : string = '.shp, .shx, .dbf, ' // Shape Files
@@ -30,6 +34,31 @@ function App() {
             setInputError('File types must be .shp, .dbf, .json, or .kml');
             return;
           }
+          // Handle shapefile conversion to GeoJSON
+          if (/.shp/.test(fileList[0].name)) {
+              const reader = new FileReader();
+              reader.onload = async (e) => {
+                  if (e.target?.result) {
+                      const arrayBuffer = e.target.result as ArrayBuffer;
+                      const result = await shp.read(arrayBuffer);
+                      setGeoJsonData(result);
+                  }
+              };
+              reader.readAsArrayBuffer(fileList[i]);
+          }
+          // Handle KML conversion to GeoJSON
+          else if (/.kml/.test(fileList[0].name)) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                  if (e.target?.result) {
+                      const parser = new domParser.DOMParser();
+                      const kml = parser.parseFromString(e.target.result as string, 'text/xml');
+                      const converted = tj.kml(kml);
+                      setGeoJsonData(converted);
+                  }
+              };
+              reader.readAsText(fileList[i]);
+          }
         }
 
         const newFileUrls : string[] = [];
@@ -44,12 +73,18 @@ function App() {
     [setInputError, fileUrls, setFileUrls],
   );
 
+
   return (
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
       </FileInput>
       { inputError ? <p>{inputError}</p> : '' }
+      {geoJsonData && (
+                <pre>
+                    {JSON.stringify(geoJsonData, null, 2)}
+                </pre>
+      )}
     </div>
   );
 }
