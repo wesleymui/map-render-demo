@@ -1,4 +1,4 @@
-import { Converter } from "./strategy";
+import { Converter } from "./converter";
 import { GeoJSON } from "geojson";
 import { isGeometry, isGeometryCollection } from "./utility";
 import L from "leaflet";

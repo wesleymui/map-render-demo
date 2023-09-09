@@ -1,4 +1,4 @@
-import { Converter } from "./strategy";
+import { Converter } from "./converter";
 import { SVGStrategy } from "./svgBuilder";
 
 namespace convertGeoJSON {
