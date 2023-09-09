@@ -12,7 +12,7 @@ abstract class Converter {
      *
      * @returns an array of react svg elements
      */
-    public abstract createSVG(): Array<JSX.Element>;
+    public abstract createSVG(): React.SVGProps<SVGSVGElement>;
 
     /**
      * Get the bounding box for the last created SVG. If no SVG was previously

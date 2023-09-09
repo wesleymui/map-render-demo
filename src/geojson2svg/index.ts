@@ -20,4 +20,4 @@ namespace convertGeoJSON {
     }
 }
 
-export type { convertGeoJSON };
+export { convertGeoJSON };

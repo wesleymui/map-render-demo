@@ -15,7 +15,7 @@ class SVGStrategy extends Converter {
     };
 
     // private elementNumber = 0;
-    public createSVG(): Array<JSX.Element> {
+    public createSVG(): React.SVGProps<SVGSVGElement> {
         // this.elementNumber = 0;
         this.box = {
             top: Infinity,
@@ -23,14 +23,16 @@ class SVGStrategy extends Converter {
             left: Infinity,
             right: -Infinity,
         };
+
         switch (this.mapData.type) {
             case "Feature":
-                return this.svgOfFeature(this.mapData);
+                return <svg>{this.svgOfFeature(this.mapData)}</svg>;
+
             case "FeatureCollection":
-                return this.svgOfFeatureCollection(this.mapData);
+                return <svg>{this.svgOfFeatureCollection(this.mapData)}</svg>;
             default: {
                 if (isGeometry(this.mapData)) {
-                    return this.svgOfGeometry(this.mapData);
+                    return <svg>{this.svgOfGeometry(this.mapData)}</svg>;
                 } else {
                     throw new Error(
                         "Programmer did not catch a type: " + this.mapData
