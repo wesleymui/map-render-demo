@@ -1,6 +1,6 @@
-import { Converter } from "../strategy";
+import { Converter } from "./strategy";
 import { GeoJSON } from "geojson";
-import { isGeometry, isGeometryCollection } from "../utility";
+import { isGeometry, isGeometryCollection } from "./utility";
 
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
@@ -23,16 +23,29 @@ class SVGStrategy extends Converter {
             left: Infinity,
             right: -Infinity,
         };
+        let svgProps = {
+            xmlns: "http://www.w3.org/2000/svg",
+        };
 
         switch (this.mapData.type) {
             case "Feature":
-                return <svg>{this.svgOfFeature(this.mapData)}</svg>;
+                return (
+                    <svg {...svgProps}>{this.svgOfFeature(this.mapData)}</svg>
+                );
 
             case "FeatureCollection":
-                return <svg>{this.svgOfFeatureCollection(this.mapData)}</svg>;
+                return (
+                    <svg {...svgProps}>
+                        {this.svgOfFeatureCollection(this.mapData)}
+                    </svg>
+                );
             default: {
                 if (isGeometry(this.mapData)) {
-                    return <svg>{this.svgOfGeometry(this.mapData)}</svg>;
+                    return (
+                        <svg {...svgProps}>
+                            {this.svgOfGeometry(this.mapData)}
+                        </svg>
+                    );
                 } else {
                     throw new Error(
                         "Programmer did not catch a type: " + this.mapData

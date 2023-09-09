@@ -1,22 +1,9 @@
 import { Converter } from "./strategy";
-import { SVGStrategy } from "./svgStrategy/svgStrategy";
+import { SVGStrategy } from "./svgBuilder";
 
 namespace convertGeoJSON {
-    export enum Strategy {
-        SVG,
-        LEAFLET,
-    }
-    export function createConverter(
-        s: Strategy,
-        g: GeoJSON.GeoJSON
-    ): Converter {
-        switch (s) {
-            case Strategy.SVG: {
-                return new SVGStrategy(g);
-            }
-            default:
-                throw new Error("Unimplemented");
-        }
+    export function createConverter(g: GeoJSON.GeoJSON): Converter {
+        return new SVGStrategy(g);
     }
 }
 
