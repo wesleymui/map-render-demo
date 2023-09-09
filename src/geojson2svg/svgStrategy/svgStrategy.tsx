@@ -2,18 +2,27 @@ import { Converter } from "../strategy";
 import { GeoJSON } from "geojson";
 import { isGeometry, isGeometryCollection } from "../utility";
 
-const STROKE_WIDTH = 7;
+const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
 
 class SVGStrategy extends Converter {
     // top left bottom right
     private box = {
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
+        top: Infinity,
+        bottom: -Infinity,
+        left: Infinity,
+        right: -Infinity,
     };
+
+    // private elementNumber = 0;
     public createSVG(): Array<JSX.Element> {
+        // this.elementNumber = 0;
+        this.box = {
+            top: Infinity,
+            bottom: -Infinity,
+            left: Infinity,
+            right: -Infinity,
+        };
         switch (this.mapData.type) {
             case "Feature":
                 return this.svgOfFeature(this.mapData);
@@ -53,11 +62,13 @@ class SVGStrategy extends Converter {
      * @returns a triplet of points [p[0], p[1], p[2]]. If p[2] was undefined, it is -1
      * @throws An error of the position is malformed
      */
-    private static isPosition(p: GeoJSON.Position): [number, number, number] {
+    private isPosition(p: GeoJSON.Position): [number, number, number] {
         let ans: [number, number, number] = [-1, -1, -1];
         if (p.length === 2 || p.length === 3) {
-            ans[0] = p[0];
-            ans[1] = p[1];
+            ans[0] = p[0] * 10;
+            ans[1] = p[1] * -10;
+            this.addToBBox(ans[0], ans[1]);
+
             if (p[2] !== undefined) {
                 ans[2] = p[2];
             }
@@ -67,14 +78,14 @@ class SVGStrategy extends Converter {
     }
 
     private buildPoint(p: GeoJSON.Position): JSX.Element {
-        p = SVGStrategy.isPosition(p);
-        this.addToBBox(p[0], p[1]);
+        p = this.isPosition(p);
         return (
             <circle
                 cx={p[0]}
                 cy={p[1]}
-                r={`${STROKE_WIDTH}`}
+                r={`${STROKE_WIDTH}%`}
                 fill={`${STROKE_COLOR}`}
+                // key={this.elementNumber.toString()}
             />
         );
     }
@@ -89,14 +100,13 @@ class SVGStrategy extends Converter {
             <polyline
                 points={coordinates
                     .map((c) => {
-                        let coords = SVGStrategy.isPosition(c);
-                        this.addToBBox(coords[0], coords[1]);
-                        return coords;
+                        return this.isPosition(c);
                     })
                     .map((c) => `${c[0]},${c[1]}`)
                     .join(" ")}
-                strokeWidth={`${STROKE_WIDTH}`}
+                stroke-width={`${STROKE_WIDTH}%`}
                 stroke={`${STROKE_COLOR}`}
+                // key={this.elementNumber.toString()}
             />
         );
     }
@@ -113,7 +123,9 @@ class SVGStrategy extends Converter {
         if (coordinates.length < 1 || coordinates[0].length < 1) {
             throw new Error("No bounding polygon specified");
         }
-        // TODO: check that all of the points are positions
+        coordinates = coordinates.map((shp) => {
+            return shp.map((p) => this.isPosition(p));
+        });
 
         let boundingShape = coordinates[0];
         // note that the zeroth path is counter clockwise
@@ -146,7 +158,8 @@ class SVGStrategy extends Converter {
                 fill-rule="evenodd"
                 fill="white"
                 stroke="black"
-                strokeWidth={`${STROKE_WIDTH}`}
+                stroke-width={`${STROKE_WIDTH}%`}
+                // key={this.elementNumber.toString()}
             />
         );
     }
@@ -183,10 +196,10 @@ class SVGStrategy extends Converter {
 
     public getBBox(): [number, number, number, number] {
         return [
-            this.box.top,
             this.box.left,
-            this.box.bottom - this.box.top,
+            this.box.top,
             this.box.right - this.box.left,
+            this.box.bottom - this.box.top,
         ];
     }
 
@@ -194,7 +207,7 @@ class SVGStrategy extends Converter {
         this.box.left = Math.min(this.box.left, x);
         this.box.right = Math.max(this.box.right, x);
         this.box.top = Math.min(this.box.top, y);
-        this.box.bottom = Math.min(this.box.bottom, y);
+        this.box.bottom = Math.max(this.box.bottom, y);
     }
 }
 
