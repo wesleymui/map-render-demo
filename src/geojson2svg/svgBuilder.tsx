@@ -1,6 +1,7 @@
 import { Converter } from "./strategy";
 import { GeoJSON } from "geojson";
 import { isGeometry, isGeometryCollection } from "./utility";
+import L from "leaflet";
 
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
@@ -223,6 +224,13 @@ class SVGStrategy extends Converter {
         this.box.right = Math.max(this.box.right, x);
         this.box.top = Math.min(this.box.top, y);
         this.box.bottom = Math.max(this.box.bottom, y);
+    }
+
+    public renderWithLeaflet(enclosingDiv: HTMLDivElement): L.Map {
+        let map = L.map(enclosingDiv);
+        L.geoJSON(this.mapData).addTo(map);
+
+        return map;
     }
 }
 
