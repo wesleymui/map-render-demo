@@ -120,7 +120,7 @@ class SVGStrategy extends Converter {
                     })
                     .map((c) => `${c[0]},${c[1]}`)
                     .join(" ")}
-                stroke-width={`${STROKE_WIDTH}%`}
+                strokeWidth={`${STROKE_WIDTH}%`}
                 stroke={`${STROKE_COLOR}`}
                 // key={this.elementNumber.toString()}
             />
@@ -174,7 +174,7 @@ class SVGStrategy extends Converter {
                 fill-rule="evenodd"
                 fill="white"
                 stroke="black"
-                stroke-width={`${STROKE_WIDTH}%`}
+                strokeWidth={`${STROKE_WIDTH}%`}
                 // key={this.elementNumber.toString()}
             />
         );
@@ -211,6 +211,9 @@ class SVGStrategy extends Converter {
     }
 
     public getBBox(): [number, number, number, number] {
+        if (this.box.left === Infinity) {
+            return [0, 0, 0, 0];
+        }
         return [
             this.box.left,
             this.box.top,
