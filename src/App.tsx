@@ -51,7 +51,7 @@ function App() {
               const reader = new FileReader();
               reader.onload = (e) => {
                   if (e.target?.result) {
-                      const parser = new domParser.DOMParser();
+                      const parser = new DOMParser();
                       const kml = parser.parseFromString(e.target.result as string, 'text/xml');
                       const converted = tj.kml(kml);
                       setGeoJsonData(converted);
