@@ -6,18 +6,35 @@ import L from "leaflet";
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
 
-class SVGStrategy extends Converter {
-    // top left bottom right
+class SVGBuilder extends Converter {
+    // keeps track of the box that bounds the current map
     private box = {
         top: Infinity,
         bottom: -Infinity,
         left: Infinity,
         right: -Infinity,
     };
+    //
+    private elementNumber = 0;
 
-    // private elementNumber = 0;
+    /**
+     * This returns the index of the next SVG element and increments an internal counter.
+     *
+     * @returns The key for the next SVG element
+     */
+    private getNextKey(): string {
+        this.elementNumber++;
+        return this.elementNumber.toString();
+    }
+
+    /**
+     * Create an SVG using the GeoJSON inputted in the constructor. Note that calls to this
+     * will recompute both the SVG and the bounding box.
+     *
+     * @returns A <svg></svg> populated with svg elements.
+     */
     public createSVG(): React.SVGProps<SVGSVGElement> {
-        // this.elementNumber = 0;
+        this.elementNumber = 0;
         this.box = {
             top: Infinity,
             bottom: -Infinity,
@@ -56,6 +73,14 @@ class SVGStrategy extends Converter {
         }
     }
 
+    /**
+     * Create the SVG elements that define a GeoJSON FeatureCollection.
+     * It is assumed that calls to this contribute to building the SVG map
+     * corresponding to this GeoJSON.
+     *
+     * @param features A GeoJSON FeatureCollection
+     * @returns An array of SVG elements that correspond to the FeatureCollection
+     */
     private svgOfFeatureCollection(
         features: GeoJSON.FeatureCollection
     ): Array<JSX.Element> {
@@ -66,6 +91,12 @@ class SVGStrategy extends Converter {
         return ans;
     }
 
+    /**
+     * Create the SVG elements that define a GeoJSON Feature.
+     *
+     * @param feature
+     * @returns
+     */
     private svgOfFeature(feature: GeoJSON.Feature): Array<JSX.Element> {
         // TODO: a feature has properties. They might be used here
         return this.svgOfGeometry(feature.geometry);
@@ -73,7 +104,10 @@ class SVGStrategy extends Converter {
 
     /**
      * Verify that a position is valid. A position is valid iff it has at least 2
-     * coordinates and optionally has a third.
+     * coordinates and optionally has a third. This function will also negate the
+     * second coordinate so that screen coordinates and Earth coordinates are
+     * oriented in the correct way.
+     *
      * @param p A position to evaluate
      * @returns a triplet of points [p[0], p[1], p[2]]. If p[2] was undefined, it is -1
      * @throws An error of the position is malformed
@@ -81,8 +115,8 @@ class SVGStrategy extends Converter {
     private isPosition(p: GeoJSON.Position): [number, number, number] {
         let ans: [number, number, number] = [-1, -1, -1];
         if (p.length === 2 || p.length === 3) {
-            ans[0] = p[0] * 10;
-            ans[1] = p[1] * -10;
+            ans[0] = p[0];
+            ans[1] = p[1] * -1;
             this.addToBBox(ans[0], ans[1]);
 
             if (p[2] !== undefined) {
@@ -93,6 +127,14 @@ class SVGStrategy extends Converter {
         throw new Error("Found malformed position " + p);
     }
 
+    /**
+     * Build a point. A point is described by a position. Its corresponding
+     * SVG representation is a small circle. It is assumed that calls to this
+     * contribute to building the SVG map corresponding to this GeoJSON.
+     *
+     * @param p The position to draw the circle at
+     * @returns An SVG circle
+     */
     private buildPoint(p: GeoJSON.Position): JSX.Element {
         p = this.isPosition(p);
         return (
@@ -101,11 +143,20 @@ class SVGStrategy extends Converter {
                 cy={p[1]}
                 r={`${STROKE_WIDTH}%`}
                 fill={`${STROKE_COLOR}`}
-                // key={this.elementNumber.toString()}
+                key={this.getNextKey()}
             />
         );
     }
 
+    /**
+     * Build a line. A line is described by an array of position. Its
+     * corresponding SVG representation is a polyline. It is assumed
+     * that calls to this contribute to building the SVG map corresponding
+     * to this GeoJSON.
+     *
+     * @param coordinates
+     * @returns A SVG polyline
+     */
     private buildLine(coordinates: GeoJSON.Position[]): JSX.Element {
         if (coordinates.length < 2) {
             throw new Error(
@@ -122,7 +173,7 @@ class SVGStrategy extends Converter {
                     .join(" ")}
                 strokeWidth={`${STROKE_WIDTH}%`}
                 stroke={`${STROKE_COLOR}`}
-                // key={this.elementNumber.toString()}
+                key={this.getNextKey()}
             />
         );
     }
@@ -130,7 +181,8 @@ class SVGStrategy extends Converter {
     /**
      * Given a double array of coordinates, construct a polygon. Note that this returns a <path> element.
      * According to https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.6, the first element is the
-     * bounding shape. Subsequent elements are holes within that shape.
+     * bounding shape. Subsequent elements are holes within that shape. It is assumed that calls to this
+     * contribute to building the SVG map corresponding to this GeoJSON.
      *
      * @param coordinates The coordinates specifying the shape
      * @returns A path element drawing the shape
@@ -167,7 +219,6 @@ class SVGStrategy extends Converter {
             }
             d += "z ";
         }
-        //TODO: modularize coloring
         return (
             <path
                 d={d}
@@ -175,11 +226,16 @@ class SVGStrategy extends Converter {
                 fill="white"
                 stroke="black"
                 strokeWidth={`${STROKE_WIDTH}%`}
-                // key={this.elementNumber.toString()}
+                key={this.getNextKey()}
             />
         );
     }
 
+    /**
+     * Construct the SVG element(s) corresponding to some GeoJSON.Geometry.
+     * @param geometry Some GeoJSON.Geometry
+     * @returns An array of SVG elements
+     */
     private svgOfGeometry(geometry: GeoJSON.Geometry): Array<JSX.Element> {
         if (isGeometryCollection(geometry)) {
             return geometry.geometries.map((g) => this.svgOfGeometry(g)).flat();
@@ -210,6 +266,11 @@ class SVGStrategy extends Converter {
         }
     }
 
+    /**
+     * Get the bounding box of the last computed SVG. Calls to
+     * `createSVG()` may change the output of this function.
+     * @returns
+     */
     public getBBox(): [number, number, number, number] {
         if (this.box.left === Infinity) {
             return [0, 0, 0, 0];
@@ -222,6 +283,12 @@ class SVGStrategy extends Converter {
         ];
     }
 
+    /**
+     * Add a point to the bounding box, expanding the bounding box
+     * when necessary.
+     * @param x The x coordinate of the point
+     * @param y The y coordinate of the point
+     */
     private addToBBox(x: number, y: number) {
         this.box.left = Math.min(this.box.left, x);
         this.box.right = Math.max(this.box.right, x);
@@ -229,6 +296,12 @@ class SVGStrategy extends Converter {
         this.box.bottom = Math.max(this.box.bottom, y);
     }
 
+    /**
+     * Render this GeoJSON using Leaflet. This function does not affect
+     * the internal state of this object.
+     * @param enclosingDiv The div that should enclose the map
+     * @returns A L.Map object corresponding to the newly created map
+     */
     public renderWithLeaflet(enclosingDiv: HTMLDivElement): L.Map {
         let map = L.map(enclosingDiv);
         L.geoJSON(this.mapData).addTo(map);
@@ -237,4 +310,4 @@ class SVGStrategy extends Converter {
     }
 }
 
-export { SVGStrategy };
+export { SVGBuilder };

@@ -1,9 +1,19 @@
 import { Converter } from "./converter";
-import { SVGStrategy } from "./svgBuilder";
+import { SVGBuilder } from "./svgBuilder";
 
+/**
+ * This namespace encapsulates everything needed to convert
+ * a GeoJSON object to SVG.
+ */
 namespace convertGeoJSON {
+    /**
+     * Create a converter for a GeoJSON object.
+     *
+     * @param g A GeoJSON to convert
+     * @returns A `Converter` object
+     */
     export function createConverter(g: GeoJSON.GeoJSON): Converter {
-        return new SVGStrategy(g);
+        return new SVGBuilder(g);
     }
 }
 
