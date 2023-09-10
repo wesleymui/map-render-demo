@@ -2,8 +2,10 @@ import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
 import * as domParser from 'xmldom';
+import * as GeoJSON from 'geojson';
 import tj from 'togeojson';
 import './App.css';
+import { json } from 'stream/consumers';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
@@ -34,9 +36,9 @@ function App() {
             setInputError('File types must be .shp, .dbf, .json, or .kml');
             return;
           }
+          const reader = new FileReader();
           // Handle shapefile conversion to GeoJSON
           if (/.shp/.test(fileList[0].name)) {
-              const reader = new FileReader();
               reader.onload = async (e) => {
                   if (e.target?.result) {
                       const arrayBuffer = e.target.result as ArrayBuffer;
@@ -48,7 +50,6 @@ function App() {
           }
           // Handle KML conversion to GeoJSON
           else if (/.kml/.test(fileList[0].name)) {
-              const reader = new FileReader();
               reader.onload = (e) => {
                   if (e.target?.result) {
                       const parser = new DOMParser();
@@ -56,6 +57,15 @@ function App() {
                       const converted = tj.kml(kml);
                       setGeoJsonData(converted);
                   }
+              };
+              reader.readAsText(fileList[i]);
+          }
+          // Handle JSON conversion to GeoJSON
+          else if (/.json/.test(fileList[0].name)) {
+              reader.onload = (e) => {
+                const content = e.target?.result as string;
+                const geojsonData = JSON.parse(content);
+                setGeoJsonData(geojsonData);
               };
               reader.readAsText(fileList[i]);
           }
