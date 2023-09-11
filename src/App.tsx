@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import FileInput from './components/FileInput';
+import MapNav from './components/MapNav';
 import './App.css';
 
 function App() {
@@ -7,19 +8,20 @@ function App() {
   const [inputError, setInputError] = useState<string>('');
 
   // A list of all accepted file types.
-  const accept : string = '.shp, .shx, .dbf, ' // Shape Files
-    + '.json, .geojson, application/geo+json, ' // GeoJSON Files
-    + '.kml, .kmz, application/vnd.google-earth.kml+xml, ' // Keyhole Files
-      + 'application/vnd.google-earth.kmz';
+  const accept: string =
+    '.shp, .shx, .dbf, ' + // Shape Files
+    '.json, .geojson, application/geo+json, ' + // GeoJSON Files
+    '.kml, .kmz, application/vnd.google-earth.kml+xml, ' + // Keyhole Files
+    'application/vnd.google-earth.kmz';
 
   const handleFiles = useCallback(
-    (event : React.ChangeEvent<HTMLInputElement>) => {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       // Cleanup.
       setInputError('');
-      fileUrls.forEach((file : string) => URL.revokeObjectURL(file));
+      fileUrls.forEach((file: string) => URL.revokeObjectURL(file));
 
       // Load each new file as a blob URL.
-      const fileList : FileList | null = event.target.files;
+      const fileList: FileList | null = event.target.files;
       if (fileList) {
         // Validate File Types.
         // TODO: Handle more file extensions listed in the accept string.
@@ -32,7 +34,7 @@ function App() {
           }
         }
 
-        const newFileUrls : string[] = [];
+        const newFileUrls: string[] = [];
         for (let i = 0; i < fileList.length; i += 1) {
           newFileUrls.push(URL.createObjectURL(fileList[i]));
         }
@@ -41,15 +43,21 @@ function App() {
         // TODO: Warn the user that the file list is null.
       }
     },
-    [setInputError, fileUrls, setFileUrls],
+    [setInputError, fileUrls, setFileUrls]
   );
-
+  const mapSvg = <rect x="20" y="20" width="60" height="40" fill="blue" />;
   return (
     <div className="App">
+      <MapNav
+        svgContent={mapSvg}
+        width={500}
+        height={500}
+        viewBox="0 0 100 100"
+      />
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
       </FileInput>
-      { inputError ? <p>{inputError}</p> : '' }
+      {inputError ? <p>{inputError}</p> : ''}
     </div>
   );
 }
