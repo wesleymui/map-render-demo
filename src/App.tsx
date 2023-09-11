@@ -1,8 +1,8 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
-import * as domParser from 'xmldom';
-import * as GeoJSON from 'geojson';
+import parse from 'dbf';
+import  { GeoJSON } from 'geojson';
 import tj from 'togeojson';
 import './App.css';
 import { json } from 'stream/consumers';
@@ -10,7 +10,7 @@ import { json } from 'stream/consumers';
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
-  const [geoJsonData, setGeoJsonData] = useState<any>(null);
+  const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
 
   // A list of all accepted file types.
   const accept : string = '.shp, .shx, .dbf, ' // Shape Files
@@ -68,6 +68,15 @@ function App() {
                 setGeoJsonData(geojsonData);
               };
               reader.readAsText(fileList[i]);
+          }
+          // Handle DBF conversion to GeoJSON
+          else if (/.dbf/.test(fileList[0].name)) {
+              reader.onload = (e) => {
+                const buffer = e.target?.result as ArrayBuffer;
+                const parsedData = parse(buffer);
+                setGeoJsonData(parsedData.records);
+              }
+              reader.readAsArrayBuffer(fileList[i]);
           }
         }
 
