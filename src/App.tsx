@@ -2,10 +2,8 @@ import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
 import parse from 'dbf';
-import  { GeoJSON } from 'geojson';
 import tj from 'togeojson';
 import './App.css';
-import { json } from 'stream/consumers';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
