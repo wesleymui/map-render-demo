@@ -106,7 +106,15 @@ function App() {
         ((): JSX.Element => {
           let converter = convertGeoJSON.createConverter(geoJsonData);
           let elements = converter.createSVG() as Array<JSX.Element>;
-          return <svg viewBox={converter.getBBox().join(' ')}>{elements}</svg>;
+          console.log(converter.getBBox());
+          return (
+            <MapNav
+              svgContent={elements}
+              width={800}
+              height={800}
+              initialViewBox={converter.getBBox().join(' ')}
+            />
+          );
         })()}
     </div>
   );
