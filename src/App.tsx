@@ -30,13 +30,13 @@ function App() {
         // TODO: Verify files more rigorously (not through file extension).
         // TODO: Verify file combinations.
         for (let i = 0; i < fileList.length; i += 1) {
-          if (!/.(shp|dbf|json|kml)/.test(fileList[0].name)) {
+          if (!/.(shp|dbf|json|kml)/.test(fileList[i].name)) {
             setInputError('File types must be .shp, .dbf, .json, or .kml');
             return;
           }
           const reader = new FileReader();
           // Handle shapefile conversion to GeoJSON
-          if (/.shp/.test(fileList[0].name)) {
+          if (/.shp/.test(fileList[i].name)) {
               reader.onload = async (e) => {
                   if (e.target?.result) {
                       const arrayBuffer = e.target.result as ArrayBuffer;
@@ -47,7 +47,7 @@ function App() {
               reader.readAsArrayBuffer(fileList[i]);
           }
           // Handle KML conversion to GeoJSON
-          else if (/.kml/.test(fileList[0].name)) {
+          else if (/.kml/.test(fileList[i].name)) {
               reader.onload = (e) => {
                   if (e.target?.result) {
                       const parser = new DOMParser();
@@ -59,7 +59,7 @@ function App() {
               reader.readAsText(fileList[i]);
           }
           // Handle JSON conversion to GeoJSON
-          else if (/.json/.test(fileList[0].name)) {
+          else if (/.json/.test(fileList[i].name)) {
               reader.onload = (e) => {
                 const content = e.target?.result as string;
                 const geojsonData = JSON.parse(content);
@@ -68,7 +68,7 @@ function App() {
               reader.readAsText(fileList[i]);
           }
           // Handle DBF conversion to GeoJSON
-          else if (/.dbf/.test(fileList[0].name)) {
+          else if (/.dbf/.test(fileList[i].name)) {
               reader.onload = (e) => {
                 const buffer = e.target?.result as ArrayBuffer;
                 const parsedData = parse(buffer);
