@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
 import parse from 'dbf';
@@ -8,8 +8,6 @@ import { convertGeoJSON } from './geojson2svg';
 import MapNav from './components/MapNav';
 
 function App() {
-  const [files, setFiles] = useState<File[]>([]);
-  const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
 
@@ -24,19 +22,20 @@ function App() {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       // Cleanup.
       setInputError('');
-      setFiles([]);
       setGeoJsonData(null);
 
+      // Input File List
       const fileList: FileList | null = event.target.files;
-      const newFileList : File[] = [];
+      // New File List
+      const files : File[] = [];
       if (fileList) {
         // Iterate and insert into a new file list.
         for (let i = 0; i < fileList.length; i += 1) {
-          newFileList.push(fileList[i]);
+          files.push(fileList[i]);
         }
 
         // Sort by file extension.
-        newFileList.sort(((a, b) => {
+        files.sort(((a, b) => {
           const aFileExt : string | undefined = a.name.split('.').pop();
           const bFileExt : string | undefined = b.name.split('.').pop();
           if (aFileExt && bFileExt) {
@@ -62,8 +61,6 @@ function App() {
           }
           return 0;
         }));
-
-        setFiles(newFileList);
       }
 
       // Handle loading files.
@@ -71,15 +68,15 @@ function App() {
       // TODO: Verify files more rigorously (not through file extension).
       // TODO: Verify file combinations.
       const reader = new FileReader();
-      if (newFileList.length === 1 && newFileList[0].name.split('.').pop() === 'json') {
+      if (files.length === 1 && files[0].name.split('.').pop() === 'json') {
         // Handle shape file conversion to GeoJSON.
         reader.onload = (e) => {
           const content = e.target?.result as string;
           const geojsonData = JSON.parse(content);
           setGeoJsonData(geojsonData);
         };
-        reader.readAsText(newFileList[0]);
-      } else if (newFileList.length === 1 && newFileList[0].name.split('.').pop() === 'kml') {
+        reader.readAsText(files[0]);
+      } else if (files.length === 1 && files[0].name.split('.').pop() === 'kml') {
         // Handle KML conversion to GeoJSON.
         reader.onload = (e) => {
           if (e.target?.result) {
@@ -92,11 +89,11 @@ function App() {
             setGeoJsonData(converted);
           }
         };
-        reader.readAsText(newFileList[0]);
-      } else if (newFileList.length === 3 
-          && newFileList[0].name.split('.').pop() === 'dbf'
-          && newFileList[1].name.split('.').pop() === 'shp'
-          && newFileList[2].name.split('.').pop() === 'shx'
+        reader.readAsText(files[0]);
+      } else if (files.length === 3 
+          && files[0].name.split('.').pop() === 'dbf'
+          && files[1].name.split('.').pop() === 'shp'
+          && files[2].name.split('.').pop() === 'shx'
         ) {
           // Handle shape file conversion to GeoJSON.
           reader.onload = async (e) => {
@@ -106,7 +103,7 @@ function App() {
               setGeoJsonData(result);
             }
           };
-          reader.readAsArrayBuffer(newFileList[1]);
+          reader.readAsArrayBuffer(files[1]);
 
           // Handle DBF conversion to GeoJSON
           // TODO: Load both .shp and .dbf files together.
@@ -115,8 +112,8 @@ function App() {
             const parsedData = parse(buffer);
             setGeoJsonData(parsedData.records);
           };
-          reader.readAsArrayBuffer(newFileList[0]); */
-        } else if (newFileList.reduce((acc, curr) => acc || /.(dbf|shp|shx)$/.test(curr.name), false)) {
+          reader.readAsArrayBuffer(files[0]); */
+        } else if (files.reduce((acc, curr) => acc || /.(dbf|shp|shx)$/.test(curr.name), false)) {
           setInputError('To load a shape file, a .shp, .shx, and .dbf file must be included.');
         } else {
           setInputError('Can only load .shp, .shx, .dbf, .json, and .kml');
