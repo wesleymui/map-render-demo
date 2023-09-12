@@ -68,33 +68,24 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   const handleMouseUp = () => {
     setPanStart(null);
   };
-
   const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (panStart) {
+      //how much did we move relative to the last panStart
       const dx = e.clientX - panStart.x;
       const dy = e.clientY - panStart.y;
 
+      //new pan x and y based on the delta mouse move and the zoom level
       const newX = pan.x - dx / zoom;
       const newY = pan.y - dy / zoom;
+
       console.log('Mouse location', newX, newY);
 
-      // Calculate the bounds of the content based on the current zoom
-      const contentWidth = width / zoom;
-      const contentHeight = height / zoom;
-
-      // Ensure the content stays within the bounds of the SVG container
-      const maxPanX = width - contentWidth;
-      const maxPanY = height - contentHeight;
-
-      // Update pan while respecting the bounds
-      setPan({
-        x: Math.min(Math.max(newX, maxPanX), 0),
-        y: Math.min(Math.max(newY, maxPanY), 0),
-      });
+      setPan({ x: newX, y: newY });
 
       const viewBoxWidth = width / zoom;
       const viewBoxHeight = height / zoom;
-      setViewBox(`${pan.x} ${pan.y} ${viewBoxWidth} ${viewBoxHeight}`);
+      setViewBox(`${newX} ${newY} ${viewBoxWidth} ${viewBoxHeight}`);
+
       setPanStart({ x: e.clientX, y: e.clientY });
     }
   };
