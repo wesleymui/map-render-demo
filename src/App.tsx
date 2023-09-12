@@ -1,12 +1,8 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
-
-import MapNav from './components/MapNav';
-
 import * as shp from 'shapefile';
 import parse from 'dbf';
 import tj from 'togeojson';
-
 import './App.css';
 
 function App() {
@@ -98,11 +94,6 @@ function App() {
     [setInputError, fileUrls, setFileUrls]
   );
 
-  const mapSvg = [
-    <rect x="20" y="20" width="500" height="400" fill="blue" />,
-    <rect x="300" y="200" width="500" height="400" fill="red" />,
-  ];
-
   return (
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
@@ -110,12 +101,6 @@ function App() {
       </FileInput>
       {inputError ? <p>{inputError}</p> : ''}
       {geoJsonData && <pre>{JSON.stringify(geoJsonData, null, 2)}</pre>}
-      <MapNav
-        svgContent={mapSvg}
-        width={500}
-        height={500}
-        initialViewBox="0 0 500 500"
-      />
     </div>
   );
 }
