@@ -9,16 +9,7 @@ import { url } from "inspector";
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
 const MAX_VAL = Number.MAX_SAFE_INTEGER
-const COLORS = [
-    "#4ED893",
-    "#CDD539",
-    "#ED3C7B",
-    "#5393F5",
-    "#7FED75",
-    "#EDBE43",
-    "#EC6CE4",
-    "#D66363"
-]
+
 
 
 
@@ -37,9 +28,35 @@ class SVGBuilder extends Converter {
         this.elementNumber++;
         return this.elementNumber.toString();
     }
-    private getNextColor() : string{
-        this.colorNumber++;
-        return COLORS[this.colorNumber % COLORS.length]
+
+    private static makeid(length : number) : string {
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < length) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+          counter += 1;
+        }
+        return result;
+    }
+
+    private getNextColor(seed : string) : string{
+        if (seed.length < 6) {
+            seed = SVGBuilder.makeid(8)
+        }
+        let asb16 = seed.split("")
+        .map(c => {
+            let t = c.charCodeAt(0) 
+            if (t < 108) {
+                t -= 32
+            }
+            t+=100
+            return t.toString(16).padStart(2, "0")
+        })
+        .join("");
+
+        return '#' + asb16.substring(0,6);
     }
 
     /**
@@ -139,7 +156,7 @@ class SVGBuilder extends Converter {
         let n = getShapeName(feature.properties)
         let shapeId = this.getNextKey()
         let animateId = this.getNextKey()
-        els = [<g id={`${shapeId}`} fill={this.getNextColor()}>
+        els = [<g id={`${shapeId}`} fill={this.getNextColor(n)}>
             {els}
             {/* <rect 
                 x={`${bbox[0]}`} 
@@ -156,8 +173,8 @@ class SVGBuilder extends Converter {
                 href={`#${animateId}`} 
                 attributeName="visibility" 
                 values="visible;hidden" 
-                begin={`${shapeId}.mousedown`} 
-                end={`${shapeId}.mouseup`} 
+                begin={`${shapeId}.mouseenter`} 
+                end={`${shapeId}.mouseleave`} 
                 cursor={"pointer"}
                 dur="indefinite" 
                 fill="remove"
