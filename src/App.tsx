@@ -45,7 +45,10 @@ function App() {
     },
     [setInputError, fileUrls, setFileUrls]
   );
-  const mapSvg = <rect x="20" y="20" width="500" height="400" fill="blue" />;
+  const mapSvg = [
+    <rect x="20" y="20" width="500" height="400" fill="blue" />,
+    <rect x="300" y="200" width="500" height="400" fill="red" />,
+  ];
   return (
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
