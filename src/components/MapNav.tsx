@@ -25,7 +25,7 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
     const cursorPointY = e.nativeEvent.offsetY / zoom;
 
     // Calculate the new zoom value, based on how much the scroll wheel was turned
-    const zoomFactor = Math.pow(1.1, e.deltaY * 0.01);
+    const zoomFactor = Math.pow(1.1, e.deltaY * -0.01);
     const newZoom = Math.min(Math.max(0.1, zoom * zoomFactor), 3);
 
     // Calculate the new viewBox values while respecting the cursor as the pivot
