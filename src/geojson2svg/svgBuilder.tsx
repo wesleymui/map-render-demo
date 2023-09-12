@@ -33,7 +33,7 @@ class SVGBuilder extends Converter {
      *
      * @returns A <svg></svg> populated with svg elements.
      */
-    public createSVG(): React.SVGProps<SVGSVGElement> {
+    public createSVG(): Array<JSX.Element> {
         this.elementNumber = 0;
         this.box = {
             top: Infinity,
@@ -41,29 +41,16 @@ class SVGBuilder extends Converter {
             left: Infinity,
             right: -Infinity,
         };
-        let svgProps = {
-            xmlns: "http://www.w3.org/2000/svg",
-        };
 
         switch (this.mapData.type) {
             case "Feature":
-                return (
-                    <svg {...svgProps}>{this.svgOfFeature(this.mapData)}</svg>
-                );
+                return this.svgOfFeature(this.mapData);
 
             case "FeatureCollection":
-                return (
-                    <svg {...svgProps}>
-                        {this.svgOfFeatureCollection(this.mapData)}
-                    </svg>
-                );
+                return this.svgOfFeatureCollection(this.mapData);
             default: {
                 if (isGeometry(this.mapData)) {
-                    return (
-                        <svg {...svgProps}>
-                            {this.svgOfGeometry(this.mapData)}
-                        </svg>
-                    );
+                    return this.svgOfGeometry(this.mapData);
                 } else {
                     throw new Error(
                         "Programmer did not catch a type: " + this.mapData
@@ -222,7 +209,7 @@ class SVGBuilder extends Converter {
         return (
             <path
                 d={d}
-                fill-rule="evenodd"
+                fillRule="evenodd"
                 fill="white"
                 stroke="black"
                 strokeWidth={`${STROKE_WIDTH}%`}

@@ -4,6 +4,7 @@ import * as shp from 'shapefile';
 import parse from 'dbf';
 import tj from 'togeojson';
 import './App.css';
+import { convertGeoJSON } from './geojson2svg';
 import MapNav from './components/MapNav';
 
 function App() {
@@ -101,7 +102,12 @@ function App() {
         Choose a Map to Render:
       </FileInput>
       {inputError ? <p>{inputError}</p> : ''}
-      {geoJsonData && <pre>{JSON.stringify(geoJsonData, null, 2)}</pre>}
+      {geoJsonData &&
+        ((): JSX.Element => {
+          let converter = convertGeoJSON.createConverter(geoJsonData);
+          let elements = converter.createSVG() as Array<JSX.Element>;
+          return <svg viewBox={converter.getBBox().join(' ')}>{elements}</svg>;
+        })()}
     </div>
   );
 }
