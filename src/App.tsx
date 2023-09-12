@@ -4,6 +4,7 @@ import * as shp from 'shapefile';
 import parse from 'dbf';
 import tj from 'togeojson';
 import './App.css';
+import MapNav from './components/MapNav';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
