@@ -1,74 +1,94 @@
-// import { convertGeoJSON } from 'src/geojson2svg/index.ts';
-
-// const converter = convertGeoJSON.createConverter(geoJSON)
-// const svgData = converter.createSVG();
-
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 
 // Define the expected props fields.
 interface Props {
   svgContent: React.ReactNode; // SVG content as a React element
   width: number; // Width of the SVG container
   height: number; // Height of the SVG container
-  viewBox: string; // Viewbox attribute for the SVG
+  initialViewBox?: string; // Initial viewBox attribute for the SVG (optional)
 }
 
-const MapNav = ({ svgContent, width, height, viewBox }: Props) => {
-  // Create a reference to the SVG element
-  const svgRef = useRef<SVGSVGElement | null>(null);
+const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
+  // Compute the initial viewBox value
+  const initialViewBoxValue = initialViewBox || `0 0 ${width} ${height}`;
 
-  // Define state variables for panning (pan) and zooming (zoom)
-  const [pan, setPan] = useState({ x: 0, y: 0 });
+  // Define state variables for viewBox, zoom, and pan
+  const [viewBox, setViewBox] = useState(initialViewBoxValue);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [panStart, setPanStart] = useState<{ x: number; y: number } | null>(
+    null
+  );
 
-  /**
-   * Mouse drag handler for panning the SVG.
-   * @param e mouse event to handle
-   */
-  const handleMouseDrag = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (e.buttons !== 1) return; // Only handle left mouse button
+  const handleMouseWheel = (e: React.WheelEvent<SVGSVGElement>) => {
+    const cursorPointX = e.nativeEvent.offsetX / zoom;
+    const cursorPointY = e.nativeEvent.offsetY / zoom;
 
-    //makes sure that the movement is scaled accroding to the zoom level
-    const dx = e.movementX / zoom;
-    const dy = e.movementY / zoom;
+    // Calculate the new zoom value, based on how much the scroll wheel was turned
+    const zoomFactor = Math.pow(1.1, e.deltaY * 0.01);
+    const newZoom = Math.min(Math.max(0.1, zoom * zoomFactor), 3);
 
-    // Update pan state to adjust the position of the SVG content
-    setPan({ x: pan.x + dx, y: pan.y + dy });
+    // Calculate the new viewBox values while respecting the cursor as the pivot
+    const newX = cursorPointX - (cursorPointX - pan.x) * zoomFactor;
+    const newY = cursorPointY - (cursorPointY - pan.y) * zoomFactor;
+
+    // Calculate the bounds of the content based on the newZoom
+    const contentWidth = width / newZoom;
+    const contentHeight = height / newZoom;
+
+    // Ensure the content stays within the bounds of the SVG container
+    const maxPanX = width - contentWidth;
+    const maxPanY = height - contentHeight;
+
+    // Update pan and zoom while respecting the bounds
+    setZoom(newZoom);
+    setPan({
+      x: Math.min(Math.max(newX, maxPanX), 0),
+      y: Math.min(Math.max(newY, maxPanY), 0),
+    });
+
+    const viewBoxWidth = width / newZoom;
+    const viewBoxHeight = height / newZoom;
+
+    // Fix the typo here: `${newY}` should be `${newX}`
+    setViewBox(`${pan.x} ${pan.y} ${viewBoxWidth} ${viewBoxHeight}`);
   };
 
-  /**
-   * Mouse wheel handler for zooming the SVG.
-   * @param e mouse event to handle
-   */
-  const handleMouseWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    //makes sure the the svgRef is populated
-    if (!svgRef.current) return;
-    //cursorPoint is the mouse position within the SVG
-    const cursorPoint = svgRef.current.createSVGPoint();
-    cursorPoint.x = e.clientX;
-    cursorPoint.y = e.clientY;
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (e.button !== 0) return; // Only handle left mouse button
+    setPanStart({ x: e.clientX, y: e.clientY });
+  };
 
-    //cursorPointMatrix is to have the cursor relateive to the SVGCoordinates
-    const cursorPointMatrix = cursorPoint.matrixTransform(
-      svgRef.current.getScreenCTM()!.inverse()
-    );
+  const handleMouseUp = () => {
+    setPanStart(null);
+  };
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (panStart) {
+      const dx = e.clientX - panStart.x;
+      const dy = e.clientY - panStart.y;
 
-    //zoomFactor is the amount of zooming that is done with relation to the deltaY of the mouse wheel
-    const zoomFactor = Math.pow(1.1, e.deltaY * 0.01);
-    const newZoom = zoom * zoomFactor;
+      const newX = pan.x - dx / zoom;
+      const newY = pan.y - dy / zoom;
 
-    // Limit the zoom to a specific range (common pratice for zooming to make sure we dont over or under do it )
-    setZoom(Math.min(Math.max(0.1, newZoom), 3));
+      // Calculate the bounds of the content based on the current zoom
+      const contentWidth = width / zoom;
+      const contentHeight = height / zoom;
 
-    // Calculate scale delta for adjusting pan during zoom
-    const scaleDelta = newZoom / zoom;
+      // Ensure the content stays within the bounds of the SVG container
+      const maxPanX = width - contentWidth;
+      const maxPanY = height - contentHeight;
 
-    // Calculate new pan values to keep the cursor point fixed
-    const dx = (pan.x - cursorPointMatrix.x) * (1 - scaleDelta);
-    const dy = (pan.y - cursorPointMatrix.y) * (1 - scaleDelta);
+      // Update pan while respecting the bounds
+      setPan({
+        x: Math.min(Math.max(newX, maxPanX), 0),
+        y: Math.min(Math.max(newY, maxPanY), 0),
+      });
 
-    // Update pan state to adjust the position of the SVG content
-    setPan({ x: pan.x - dx, y: pan.y - dy });
+      const viewBoxWidth = width / zoom;
+      const viewBoxHeight = height / zoom;
+      setViewBox(`${pan.x} ${pan.y} ${viewBoxWidth} ${viewBoxHeight}`);
+      setPanStart({ x: e.clientX, y: e.clientY });
+    }
   };
 
   return (
@@ -76,13 +96,11 @@ const MapNav = ({ svgContent, width, height, viewBox }: Props) => {
       width={width}
       height={height}
       viewBox={viewBox}
-      ref={svgRef}
-      onMouseMove={handleMouseDrag}
       onWheel={handleMouseWheel}
-      style={{
-        transform: `scale(${zoom}) translate(${pan.x}px, ${pan.y}px)`,
-        transformOrigin: '0 0',
-      }}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseMove={handleMouseMove}
+      style={{ cursor: panStart ? 'grabbing' : 'grab' }}
     >
       {svgContent}
     </svg>

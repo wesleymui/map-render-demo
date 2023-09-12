@@ -45,19 +45,19 @@ function App() {
     },
     [setInputError, fileUrls, setFileUrls]
   );
-  const mapSvg = <rect x="20" y="20" width="60" height="40" fill="blue" />;
+  const mapSvg = <rect x="20" y="20" width="500" height="400" fill="blue" />;
   return (
     <div className="App">
-      <MapNav
-        svgContent={mapSvg}
-        width={500}
-        height={500}
-        viewBox="0 0 100 100"
-      />
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
       </FileInput>
       {inputError ? <p>{inputError}</p> : ''}
+      <MapNav
+        svgContent={mapSvg}
+        width={500}
+        height={500}
+        initialViewBox="0 0 500 500"
+      />
     </div>
   );
 }
