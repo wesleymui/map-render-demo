@@ -1,0 +1,15 @@
+"OBJECTID","ID_0","ISO","NAME_0","ID_1","NAME_1","TYPE_1","ENGTYPE_1","NL_NAME_1","VARNAME_1"
+1,166,"PRK","North Korea",1,"Chagang-do","Do","Province","	<U+C790><U+AC15><U+B3C4>","Changang|Jagang"
+2,166,"PRK","North Korea",2,"Hamgyong-bukto","Do","Province","<U+D568><U+ACBD><U+BD81><U+B3C4>","North Hamgyong|Kankyo Hoku-do"
+3,166,"PRK","North Korea",3,"Hamgyong-namdo","Do","Province","<U+D568><U+ACBD><U+B0A8><U+B3C4>","South Hamgyong|Kankyo Nan-do"
+4,166,"PRK","North Korea",4,"Hwanghae-bukto","Do","Province","<U+D669><U+D574><U+BD81><U+B3C4>","North Hwanghae|North Hwanghai"
+5,166,"PRK","North Korea",5,"Hwanghae-namdo","Do","Province","	<U+D669><U+D574><U+B0A8><U+B3C4>","South Hwanghae|South Hwanghai"
+6,166,"PRK","North Korea",6,"Kaesong","T'ukbyol Haengjeonggu","Special Administrative Region","<U+AC1C><U+C131><U+ACF5><U+C5C5><U+C9C0><U+AD6C>","Kaesong|Kaesong-chigu|Kaesong Kong-op Chigu|Kaesong Industrial Region"
+7,166,"PRK","North Korea",7,"Kangwon-do","Do","Province","	<U+AC15><U+C6D0><U+B3C4>","Kangwon|Kogen-do|North Kangwon"
+8,166,"PRK","North Korea",8,"Kumgangsan","T'ukbyol Haengjeonggu","Special Administrative Region","	<U+AE08><U+AC15><U+C0B0> <U+AD00><U+AD11> <U+C9C0><U+AD6C>",NA
+9,166,"PRK","North Korea",9,"P'yongan-bukto","Do","Province","	<U+D3C9><U+C548><U+BD81><U+B3C4>","North Pyongan|Heian Hoku-do"
+10,166,"PRK","North Korea",10,"P'yongan-namdo","Do","Province","<U+D3C9><U+C548><U+B0A8><U+B3C4>","South Pyongan|Heian Nan-do"
+11,166,"PRK","North Korea",11,"P'yongyang","Si","Special City","	<U+D3C9><U+C591><U+C9C1><U+D560><U+C2DC>","Pyongyang|Pjöngjang|P'yongyang-tukpyolsi"
+12,166,"PRK","North Korea",12,"Rason","Teukbyeolsi","Directly Governed City","	<U+B77C><U+C120> <U+C9C1><U+D560><U+C2DC>","Rajin-Sonbong"
+13,166,"PRK","North Korea",13,"Ryanggang","Do","Province","	<U+B7C9><U+AC15><U+B3C4>","Yanggang|Ryanggang-do"
+14,166,"PRK","North Korea",14,"Sinuiju","T'ukbyol Haengjeonggu","Special Administrative Region","	<U+C2E0><U+C758><U+C8FC> <U+D2B9><U+BCC4> <U+D589><U+C815><U+AD6C>",NA
