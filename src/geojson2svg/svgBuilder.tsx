@@ -195,10 +195,11 @@ class SVGBuilder extends Converter {
                 fontSize={`${STROKE_WIDTH * 10}px`} 
                 key={this.getNextKey()}
                 id={`${animateId}`}
-                visibility={"hidden"}
+                visibility="hidden"
                 style={{
                     filter: "url(#textbg)"
                 }}
+                pointerEvents="none"
                 // style={'filter:url("#textbg")'}
             >
                 {n}
