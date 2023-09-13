@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Define the expected props fields.
 interface Props {
@@ -14,6 +14,7 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   const initialViewBoxY = parseFloat(initialViewBoxArray[1]);
   const initialViewBoxWidth = parseFloat(initialViewBoxArray[2]);
   const initialViewBoxHeight = parseFloat(initialViewBoxArray[3]);
+  let svgRef = useRef<SVGSVGElement|null>(null)
 
   // Compute the initial viewBox value
 
@@ -29,9 +30,9 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
     null
   );
 
-  const handleMouseWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    const cursorPointX = e.nativeEvent.offsetX;
-    const cursorPointY = e.nativeEvent.offsetY;
+  const handleMouseWheel = (e: WheelEvent) => {
+    const cursorPointX = e.offsetX;
+    const cursorPointY = e.offsetY;
 
     const zoomFactor = Math.pow(1.05, e.deltaY * -0.01);
 
@@ -126,12 +127,26 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
     }
   };
 
+  useEffect(() => {
+    if (svgRef.current === null) {
+      return
+    }
+    svgRef.current.addEventListener("wheel", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      handleMouseWheel(e)
+      return false
+    }, {passive: false})
+
+  })
+
+
   return (
     <svg
       width={width}
       height={height}
       viewBox={viewBox}
-      onWheel={handleMouseWheel}
+      ref={svgRef}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
