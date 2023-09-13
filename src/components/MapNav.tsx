@@ -8,6 +8,10 @@ interface Props {
   initialViewBox: string; // Initial viewBox attribute for the SVG
 }
 
+// this is to check if this is a rerender or a map change
+const lastMapElements: JSX.Element[] = []
+
+
 const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   const initialViewBoxArray = initialViewBox.split(' ');
   const initialViewBoxX = parseFloat(initialViewBoxArray[0]);
@@ -138,6 +142,14 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
       return false
     }, {passive: false})
 
+  })
+
+
+  useEffect(() => {
+    let el = svgRef.current
+    if (el && svgContent != lastMapElements) {
+      setViewBox(initialViewBox)
+    }
   })
 
 

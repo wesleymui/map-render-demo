@@ -16,7 +16,6 @@ const MAX_VAL = Number.MAX_SAFE_INTEGER
 
 class SVGBuilder extends Converter {
     private elementNumber = 0;
-    private colorNumber = 0;
     private bbox : SVGBBox = [0,0,0,0]
 
     /**
