@@ -9,7 +9,7 @@ interface Props {
 }
 
 // this is to check if this is a rerender or a map change
-const lastMapElements: JSX.Element[] = []
+let lastMapElements: React.ReactNode[] = []
 
 
 const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
@@ -148,7 +148,12 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   useEffect(() => {
     let el = svgRef.current
     if (el && svgContent != lastMapElements) {
-      setViewBox(initialViewBox)
+      setViewBox(`${initialViewBoxX} ${initialViewBoxY} ${initialFactor} ${initialFactor}`)
+      setPan({
+        x: initialViewBoxX,
+        y: initialViewBoxY,
+      })
+      lastMapElements = svgContent
     }
   })
 
