@@ -18,7 +18,8 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   // Compute the initial viewBox value
 
   // Define state variables for viewBox, zoom, and pan
-  const [viewBox, setViewBox] = useState(initialViewBox);
+  let initialFactor = Math.max(initialViewBoxWidth, initialViewBoxHeight)
+  const [viewBox, setViewBox] = useState(`${initialViewBoxX} ${initialViewBoxY} ${initialFactor} ${initialFactor}`);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({
     x: initialViewBoxX,
@@ -107,12 +108,13 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
       const dy = e.clientY - panStart.y;
 
       //new pan x and y based on the delta mouse move and the zoom level
-      const panScalingFactorX = initialViewBoxWidth / width;
-      const panScalingFactorY = initialViewBoxHeight / height;
+      let currvb = viewBox.split(" ").map(x => parseFloat(x))
+      const panScalingFactorX = currvb[2] / width;
+      const panScalingFactorY = currvb[3] / height;
       // console.log('Pan scaling factor', panScalingFactorX, panScalingFactorY);
 
-      const newX = pan.x - (dx / zoom) * panScalingFactorX;
-      const newY = pan.y - (dy / zoom) * panScalingFactorY;
+      const newX = pan.x - (dx/zoom ) * panScalingFactorX
+      const newY = pan.y - (dy/zoom ) * panScalingFactorY
 
       // console.log('Mouse location', newX, newY);
 
@@ -133,7 +135,12 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
-      style={{ cursor: panStart ? 'grabbing' : 'grab' }}
+      style={{ 
+        cursor: panStart ? 'grabbing' : 'grab',
+        width: `${width}px`,
+        height: `${height}px`
+      }}
+      
     >
       {svgContent}
     </svg>
