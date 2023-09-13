@@ -17,6 +17,7 @@ const MAX_VAL = Number.MAX_SAFE_INTEGER
 class SVGBuilder extends Converter {
     private elementNumber = 0;
     private bbox : SVGBBox = [0,0,0,0]
+    private cached : JSX.Element[] = []
 
     /**
      * This returns the index of the next SVG element and increments an internal counter.
@@ -64,7 +65,10 @@ class SVGBuilder extends Converter {
      *
      * @returns A <svg></svg> populated with svg elements.
      */
-    public createSVG(): Array<JSX.Element> {
+    public createSVG(refresh?:boolean): Array<JSX.Element> {
+        if (!refresh && this.cached.length != 0) {
+            return this.cached
+        }
         this.elementNumber = 0;
 
         let prelude = [
@@ -85,6 +89,7 @@ class SVGBuilder extends Converter {
                 this.bbox = bbox
                 els.push(txt)
                 els.unshift(...prelude)
+                this.cached = els
                 return els
             }
 
@@ -93,6 +98,7 @@ class SVGBuilder extends Converter {
                 let [els, bbox] =this.svgOfFeatureCollection(this.mapData);
                 this.bbox = bbox
                 els.unshift(...prelude)
+                this.cached = els
                 return els
             }
             default: {
@@ -100,6 +106,7 @@ class SVGBuilder extends Converter {
                     let [els, bbox] =this.svgOfGeometry(this.mapData);
                     this.bbox = bbox
                     els.unshift(...prelude)
+                    this.cached = els
                     return els
                 } else {
                     throw new Error(

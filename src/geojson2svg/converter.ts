@@ -9,11 +9,13 @@ abstract class Converter {
     }
 
     /**
-     * Given the original mapData, create react SVG elements for each feature
+     * Given the original mapData, create react SVG elements for each feature. Implementations
+     * should naturally try to cache results internally.
      *
+     * @param refresh If refresh is a true, force the entire geoJSON to be recalculated
      * @returns An array of renderable SVG elements
      */
-    public abstract createSVG(): Array<JSX.Element>;
+    public abstract createSVG(refresh?: boolean): Array<JSX.Element>;
 
     /**
      * Get the bounding box for the last created SVG. If no SVG was previously
