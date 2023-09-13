@@ -9,11 +9,13 @@ import tj from 'togeojson';
 import './App.css';
 import { convertGeoJSON } from './geojson2svg';
 import MapNav from './components/MapNav';
+import { Converter } from './geojson2svg/converter';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
+  const [converter, setConverter] = useState<Converter| null>(null)
   const [records, setRecords] = useState<any[]>([]);
 
   // A list of all accepted file types.
@@ -49,6 +51,7 @@ function App() {
                 const arrayBuffer = e.target.result as ArrayBuffer;
                 const result = await shp.read(arrayBuffer);
                 setGeoJsonData(result);
+                setConverter(convertGeoJSON.createConverter(result))
               }
             };
             reader.readAsArrayBuffer(fileList[i]);
@@ -64,6 +67,7 @@ function App() {
                 );
                 const converted = tj.kml(kml);
                 setGeoJsonData(converted);
+                setConverter(convertGeoJSON.createConverter(converted))
               }
             };
             reader.readAsText(fileList[i]);
@@ -74,6 +78,7 @@ function App() {
               const content = e.target?.result as string;
               const geojsonData = JSON.parse(content);
               setGeoJsonData(geojsonData);
+              setConverter(convertGeoJSON.createConverter(geojsonData))
             };
             reader.readAsText(fileList[i]);
           }
@@ -95,7 +100,7 @@ function App() {
         setFileUrls(newFileUrls);
       } else {
         // TODO: Warn the user that the file list is null.
-      }
+      }   
     },
     [setInputError, fileUrls, setFileUrls]
   );
@@ -105,22 +110,16 @@ function App() {
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
       </FileInput>
-      { inputError ? <p>{inputError}</p> : '' }
-      {geoJsonData &&
-        ((): JSX.Element => {
-          let converter = convertGeoJSON.createConverter(geoJsonData);
-          let elements = converter.createSVG() as Array<JSX.Element>;
-          console.log(converter.getBBox());
-          return (
-            <MapNav
-              svgContent={elements}
-              width={800}
-              height={800}
-              initialViewBox={converter.getBBox().join(' ')}
-            />
-          );
-        })()}
-                          <div>
+      {inputError ? <p>{inputError}</p> : ''}
+      {converter &&
+        <MapNav
+            svgContent={converter.createSVG()}
+            width={800}
+            height={800}
+            initialViewBox={converter.getBBox().join(' ')}
+        />
+        }
+                                  <div>
                 {/* Display the DBF records */}
                 {records.map((record, index) => (
                     <pre key={index}>{JSON.stringify(record, null, 2)}</pre>

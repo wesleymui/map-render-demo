@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 // Define the expected props fields.
 interface Props {
@@ -8,17 +8,23 @@ interface Props {
   initialViewBox: string; // Initial viewBox attribute for the SVG
 }
 
+// this is to check if this is a rerender or a map change
+let lastMapElements: React.ReactNode[] = []
+
+
 const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
   const initialViewBoxArray = initialViewBox.split(' ');
   const initialViewBoxX = parseFloat(initialViewBoxArray[0]);
   const initialViewBoxY = parseFloat(initialViewBoxArray[1]);
   const initialViewBoxWidth = parseFloat(initialViewBoxArray[2]);
   const initialViewBoxHeight = parseFloat(initialViewBoxArray[3]);
+  let svgRef = useRef<SVGSVGElement|null>(null)
 
   // Compute the initial viewBox value
 
   // Define state variables for viewBox, zoom, and pan
-  const [viewBox, setViewBox] = useState(initialViewBox);
+  let initialFactor = Math.max(initialViewBoxWidth, initialViewBoxHeight)
+  const [viewBox, setViewBox] = useState(`${initialViewBoxX} ${initialViewBoxY} ${initialFactor} ${initialFactor}`);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({
     x: initialViewBoxX,
@@ -28,9 +34,9 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
     null
   );
 
-  const handleMouseWheel = (e: React.WheelEvent<SVGSVGElement>) => {
-    const cursorPointX = e.nativeEvent.offsetX;
-    const cursorPointY = e.nativeEvent.offsetY;
+  const handleMouseWheel = (e: WheelEvent) => {
+    const cursorPointX = e.offsetX;
+    const cursorPointY = e.offsetY;
 
     const zoomFactor = Math.pow(1.05, e.deltaY * -0.01);
 
@@ -107,12 +113,13 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
       const dy = e.clientY - panStart.y;
 
       //new pan x and y based on the delta mouse move and the zoom level
-      const panScalingFactorX = initialViewBoxWidth / width;
-      const panScalingFactorY = initialViewBoxHeight / height;
+      let currvb = viewBox.split(" ").map(x => parseFloat(x))
+      const panScalingFactorX = currvb[2] / width;
+      const panScalingFactorY = currvb[3] / height;
       // console.log('Pan scaling factor', panScalingFactorX, panScalingFactorY);
 
-      const newX = pan.x - (dx / zoom) * panScalingFactorX;
-      const newY = pan.y - (dy / zoom) * panScalingFactorY;
+      const newX = pan.x - (dx/zoom ) * panScalingFactorX
+      const newY = pan.y - (dy/zoom ) * panScalingFactorY
 
       // console.log('Mouse location', newX, newY);
 
@@ -124,16 +131,48 @@ const MapNav = ({ svgContent, width, height, initialViewBox }: Props) => {
     }
   };
 
+  useEffect(() => {
+    if (svgRef.current === null) {
+      return
+    }
+    svgRef.current.addEventListener("wheel", (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      handleMouseWheel(e)
+      return false
+    }, {passive: false})
+
+  })
+
+
+  useEffect(() => {
+    let el = svgRef.current
+    if (el && svgContent != lastMapElements) {
+      setViewBox(`${initialViewBoxX} ${initialViewBoxY} ${initialFactor} ${initialFactor}`)
+      setPan({
+        x: initialViewBoxX,
+        y: initialViewBoxY,
+      })
+      lastMapElements = svgContent
+    }
+  })
+
+
   return (
     <svg
       width={width}
       height={height}
       viewBox={viewBox}
-      onWheel={handleMouseWheel}
+      ref={svgRef}
       onMouseDown={handleMouseDown}
       onMouseUp={handleMouseUp}
       onMouseMove={handleMouseMove}
-      style={{ cursor: panStart ? 'grabbing' : 'grab' }}
+      style={{ 
+        cursor: panStart ? 'grabbing' : 'grab',
+        width: `${width}px`,
+        height: `${height}px`
+      }}
+      
     >
       {svgContent}
     </svg>
