@@ -11,9 +11,9 @@ abstract class Converter {
     /**
      * Given the original mapData, create react SVG elements for each feature
      *
-     * @returns An SVG with this.mapData drawn
+     * @returns An array of renderable SVG elements
      */
-    public abstract createSVG(): React.SVGProps<SVGSVGElement>;
+    public abstract createSVG(): Array<JSX.Element>;
 
     /**
      * Get the bounding box for the last created SVG. If no SVG was previously

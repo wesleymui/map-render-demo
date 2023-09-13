@@ -7,6 +7,8 @@ import  {Dbf} from 'dbf-reader';
 import { DataTable } from 'dbf-reader/models/dbf-file';
 import tj from 'togeojson';
 import './App.css';
+import { convertGeoJSON } from './geojson2svg';
+import MapNav from './components/MapNav';
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
@@ -15,19 +17,20 @@ function App() {
   const [records, setRecords] = useState<any[]>([]);
 
   // A list of all accepted file types.
-  const accept : string = '.shp, .shx, .dbf, ' // Shape Files
-    + '.json, .geojson, application/geo+json, ' // GeoJSON Files
-    + '.kml, .kmz, application/vnd.google-earth.kml+xml, ' // Keyhole Files
-      + 'application/vnd.google-earth.kmz';
+  const accept: string =
+    '.shp, .shx, .dbf, ' + // Shape Files
+    '.json, .geojson, application/geo+json, ' + // GeoJSON Files
+    '.kml, .kmz, application/vnd.google-earth.kml+xml, ' + // Keyhole Files
+    'application/vnd.google-earth.kmz';
 
   const handleFiles = useCallback(
-    (event : React.ChangeEvent<HTMLInputElement>) => {
+    (event: React.ChangeEvent<HTMLInputElement>) => {
       // Cleanup.
       setInputError('');
-      fileUrls.forEach((file : string) => URL.revokeObjectURL(file));
+      fileUrls.forEach((file: string) => URL.revokeObjectURL(file));
 
       // Load each new file as a blob URL.
-      const fileList : FileList | null = event.target.files;
+      const fileList: FileList | null = event.target.files;
       if (fileList) {
         // Validate File Types.
         // TODO: Handle more file extensions listed in the accept string.
@@ -41,51 +44,51 @@ function App() {
           const reader = new FileReader();
           // Handle shapefile conversion to GeoJSON
           if (/.shp/.test(fileList[i].name)) {
-              reader.onload = async (e) => {
-                  if (e.target?.result) {
-                      const arrayBuffer = e.target.result as ArrayBuffer;
-                      const result = await shp.read(arrayBuffer);
-                      setGeoJsonData(result);
-                  }
-              };
-              reader.readAsArrayBuffer(fileList[i]);
+            reader.onload = async (e) => {
+              if (e.target?.result) {
+                const arrayBuffer = e.target.result as ArrayBuffer;
+                const result = await shp.read(arrayBuffer);
+                setGeoJsonData(result);
+              }
+            };
+            reader.readAsArrayBuffer(fileList[i]);
           }
           // Handle KML conversion to GeoJSON
           else if (/.kml/.test(fileList[i].name)) {
-              reader.onload = (e) => {
-                  if (e.target?.result) {
-                      const parser = new DOMParser();
-                      const kml = parser.parseFromString(e.target.result as string, 'text/xml');
-                      const converted = tj.kml(kml);
-                      setGeoJsonData(converted);
-                  }
-              };
-              reader.readAsText(fileList[i]);
+            reader.onload = (e) => {
+              if (e.target?.result) {
+                const parser = new DOMParser();
+                const kml = parser.parseFromString(
+                  e.target.result as string,
+                  'text/xml'
+                );
+                const converted = tj.kml(kml);
+                setGeoJsonData(converted);
+              }
+            };
+            reader.readAsText(fileList[i]);
           }
           // Handle JSON conversion to GeoJSON
           else if (/.json/.test(fileList[i].name)) {
-              reader.onload = (e) => {
-                const content = e.target?.result as string;
-                const geojsonData = JSON.parse(content);
-                setGeoJsonData(geojsonData);
-              };
-              reader.readAsText(fileList[i]);
+            reader.onload = (e) => {
+              const content = e.target?.result as string;
+              const geojsonData = JSON.parse(content);
+              setGeoJsonData(geojsonData);
+            };
+            reader.readAsText(fileList[i]);
           }
           // Handle DBF conversion to GeoJSON
           else if (/.dbf/.test(fileList[i].name)) {
               reader.onload = (e) => {
-                // const arrayBuffer = reader.result as ArrayBuffer;
-                // let buffer : any = Buffer.from(arrayBuffer);
-                // const parsedData:DataTable = Dbf.read(buffer);
                 const buffer : ArrayBuffer = e.target?.result as ArrayBuffer;
                 const parsedData = structure(buffer);
-                setRecords(parsedData.records);
+                setGeoJsonData(parsedData.records);
               }
               reader.readAsArrayBuffer(fileList[i]);
           }
         }
 
-        const newFileUrls : string[] = [];
+        const newFileUrls: string[] = [];
         for (let i = 0; i < fileList.length; i += 1) {
           newFileUrls.push(URL.createObjectURL(fileList[i]));
         }
@@ -94,9 +97,8 @@ function App() {
         // TODO: Warn the user that the file list is null.
       }
     },
-    [setInputError, fileUrls, setFileUrls],
+    [setInputError, fileUrls, setFileUrls]
   );
-
 
   return (
     <div className="App">
@@ -104,19 +106,26 @@ function App() {
         Choose a Map to Render:
       </FileInput>
       { inputError ? <p>{inputError}</p> : '' }
-      {/* {geoJsonData && (
-                <pre>
-                    {JSON.stringify(geoJsonData, null, 2)}
-                </pre>
-      )} */
-      }
-                  <div>
+      {geoJsonData &&
+        ((): JSX.Element => {
+          let converter = convertGeoJSON.createConverter(geoJsonData);
+          let elements = converter.createSVG() as Array<JSX.Element>;
+          console.log(converter.getBBox());
+          return (
+            <MapNav
+              svgContent={elements}
+              width={800}
+              height={800}
+              initialViewBox={converter.getBBox().join(' ')}
+            />
+          );
+        })()}
+                          <div>
                 {/* Display the DBF records */}
                 {records.map((record, index) => (
                     <pre key={index}>{JSON.stringify(record, null, 2)}</pre>
                 ))}
             </div>
-      
     </div>
   );
 }
