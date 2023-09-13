@@ -1,7 +1,10 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
+import { Buffer } from 'buffer';
 import * as shp from 'shapefile';
-import parse from 'dbf';
+import {structure} from 'dbf';
+import  {Dbf} from 'dbf-reader';
+import { DataTable } from 'dbf-reader/models/dbf-file';
 import tj from 'togeojson';
 import './App.css';
 
@@ -9,6 +12,7 @@ function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
+  const [records, setRecords] = useState<any[]>([]);
 
   // A list of all accepted file types.
   const accept : string = '.shp, .shx, .dbf, ' // Shape Files
@@ -70,9 +74,12 @@ function App() {
           // Handle DBF conversion to GeoJSON
           else if (/.dbf/.test(fileList[i].name)) {
               reader.onload = (e) => {
-                const buffer = e.target?.result as ArrayBuffer;
-                const parsedData = parse(buffer);
-                setGeoJsonData(parsedData.records);
+                // const arrayBuffer = reader.result as ArrayBuffer;
+                // let buffer : any = Buffer.from(arrayBuffer);
+                // const parsedData:DataTable = Dbf.read(buffer);
+                const buffer : ArrayBuffer = e.target?.result as ArrayBuffer;
+                const parsedData = structure(buffer);
+                setRecords(parsedData.records);
               }
               reader.readAsArrayBuffer(fileList[i]);
           }
@@ -97,11 +104,19 @@ function App() {
         Choose a Map to Render:
       </FileInput>
       { inputError ? <p>{inputError}</p> : '' }
-      {geoJsonData && (
+      {/* {geoJsonData && (
                 <pre>
                     {JSON.stringify(geoJsonData, null, 2)}
                 </pre>
-      )}
+      )} */
+      }
+                  <div>
+                {/* Display the DBF records */}
+                {records.map((record, index) => (
+                    <pre key={index}>{JSON.stringify(record, null, 2)}</pre>
+                ))}
+            </div>
+      
     </div>
   );
 }
