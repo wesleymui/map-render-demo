@@ -79,14 +79,14 @@ function App() {
             reader.readAsText(fileList[i]);
           }
           // Handle DBF conversion to GeoJSON
-          else if (/.dbf/.test(fileList[i].name)) {
-            reader.onload = (e) => {
-              const buffer = e.target?.result as ArrayBuffer;
-              const parsedData = parse(buffer);
-              setGeoJsonData(parsedData.records);
-            };
-            reader.readAsArrayBuffer(fileList[i]);
-          }
+          // else if (/.dbf/.test(fileList[i].name)) {
+          //   reader.onload = (e) => {
+          //     const buffer = e.target?.result as ArrayBuffer;
+          //     const parsedData = parse(buffer);
+          //     setGeoJsonData(parsedData.records);
+          //   };
+          //   reader.readAsArrayBuffer(fileList[i]);
+          // }
         }
 
         const newFileUrls: string[] = [];
@@ -102,6 +102,9 @@ function App() {
   );
 
   return (
+    <>
+    <script type="text/javascript" src="smil-in-javascript.js"></script>
+    <script type="text/javascript" src="web-animations.js"></script>
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
@@ -116,6 +119,7 @@ function App() {
         />
         }
     </div>
+    </>
   );
 }
 

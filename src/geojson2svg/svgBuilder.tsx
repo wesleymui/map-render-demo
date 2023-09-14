@@ -28,7 +28,7 @@ class SVGBuilder extends Converter {
      */
     private getNextKey(): string {
         this.elementNumber++;
-        return this.elementNumber.toString();
+        return "eno" + this.elementNumber.toString();
     }
 
     private static makeid(length : number) : string {
@@ -72,22 +72,12 @@ class SVGBuilder extends Converter {
         if (precision === this.precision && !refresh && this.cached.length != 0) {
             return this.cached
         }
-        precision %= 1
         this.precision = precision
         this.decimalPlaces = Math.pow(10,Math.floor((1-precision)*10))
         this.elementNumber = 0;
 
         let prelude = [
-            <defs>
-                <filter x="-0.1" y="-0.1" width="1.3" height="1.3" id="textbg">
-                <feMorphology in="SourceAlpha" result="MORPH" operator="dilate" radius="2" />
-                <feColorMatrix in="MORPH" result="WHITENED" type="matrix" values="-1 0 0 0 1, 0 -1 0 0 1, 0 0 -1 0 1, 0 0 0 1 0"/>
-                <feMerge>
-                    <feMergeNode in="WHITENED"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-                </filter>
-            </defs>
+            <script></script>
         ]
         switch (this.mapData.type) {
             case "Feature":{
@@ -168,8 +158,6 @@ class SVGBuilder extends Converter {
         let n = getShapeName(feature.properties)
         let shapeId = this.getNextKey()
         let animateId = this.getNextKey()
-        console.log(`shape name : `)
-        console.log(feature.properties)
         els = [<g id={`${shapeId}`} fill={this.getNextColor(n)}>
             {els}
         </g>]
@@ -181,7 +169,7 @@ class SVGBuilder extends Converter {
                 begin={`${shapeId}.mouseenter`} 
                 end={`${shapeId}.mouseleave`} 
                 cursor={"pointer"}
-                dur="indefinite" 
+                dur="2s" 
                 fill="remove"
             />);
         return [[
@@ -273,7 +261,7 @@ class SVGBuilder extends Converter {
                     .filter((x,i) => {  
                         ctr+=this.precision;
                         if (ctr >= 1) {
-                            ctr-= 1
+                            ctr -= 1
                             return false;
                         }
                         return true;
@@ -316,24 +304,32 @@ class SVGBuilder extends Converter {
         }
         let ctr = 0;
         coordinates = coordinates.map((shp) => {
-            return shp.filter(x=>{
+            shp= shp
+            .filter(x=>{
                 ctr+=this.precision;
                 if (ctr >= 1) {
                     ctr-= 1
                     return false;
                 }
                 return true;
-            }).map((p) => this.isPosition(p));
-        }).filter(([x,y,z], i, a) => {
-            if (i !== 0) {
-                if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
-                    return false
+            })
+            .map((p) => this.isPosition(p))
+            .filter(([x,y,z], i, a) => {
+                if (i !== 0) {
+                    if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
+                        return false
+                    }
                 }
-            }
-            return true
+                return true
+            })
+            return shp
         })
-
         let boundingShape = coordinates[0];
+        if (boundingShape === undefined || boundingShape[0] === undefined) {
+            return [
+                <></>, [0,0,0,0]
+            ]
+        }
         // note that the zeroth path is counter clockwise
         // and all other paths are counter
         let b : SVGBBox= [boundingShape[0][0],boundingShape[0][1],0,0]
