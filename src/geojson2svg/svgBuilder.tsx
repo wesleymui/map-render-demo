@@ -4,12 +4,12 @@ import { SVGBBox , addPointToLocalBBox, mergeBBox} from "./SVGBBox";
 import { isGeometry, isGeometryCollection } from "./utility";
 import L from "leaflet";
 import { getShapeName } from "./labels";
-import { url } from "inspector";
+// import { useRef } from "react";
 
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
 const MAX_VAL = Number.MAX_SAFE_INTEGER
-
+const TEXT_LABEL_ID = "countryTextLabel"
 
 
 
@@ -20,6 +20,7 @@ class SVGBuilder extends Converter {
     private cached : JSX.Element[] = []
     private precision : number = 0;
     private decimalPlaces : number = Math.pow(10,10);
+    
 
     /**
      * This returns the index of the next SVG element and increments an internal counter.
@@ -76,15 +77,12 @@ class SVGBuilder extends Converter {
         this.decimalPlaces = Math.pow(10,Math.floor((1-precision)*10))
         this.elementNumber = 0;
 
-        let prelude = [
-            <script></script>
-        ]
+
         switch (this.mapData.type) {
             case "Feature":{
-                let [[els,txt], bbox] = this.svgOfFeature(this.mapData);
+                let [els, bbox] = this.svgOfFeature(this.mapData);
                 this.bbox = bbox
-                els.push(txt)
-                els.unshift(...prelude)
+                // els.push(lbl)
                 this.cached = els
                 return els
             }
@@ -93,7 +91,7 @@ class SVGBuilder extends Converter {
             case "FeatureCollection": {
                 let [els, bbox] =this.svgOfFeatureCollection(this.mapData);
                 this.bbox = bbox
-                els.unshift(...prelude)
+                // els.push(lbl)
                 this.cached = els
                 return els
             }
@@ -101,7 +99,7 @@ class SVGBuilder extends Converter {
                 if (isGeometry(this.mapData)) {
                     let [els, bbox] =this.svgOfGeometry(this.mapData);
                     this.bbox = bbox
-                    els.unshift(...prelude)
+                    // els.push(lbl)
                     this.cached = els
                     return els
                 } else {
@@ -124,13 +122,13 @@ class SVGBuilder extends Converter {
     private svgOfFeatureCollection(
         features: GeoJSON.FeatureCollection
     ): [Array<JSX.Element>, SVGBBox] {
-        let layers : [Array<JSX.Element>[], JSX.Element[]] = [[],[]]
+        let elements : JSX.Element[] = []
         let bbox : SVGBBox = [MAX_VAL, MAX_VAL, 0,0]
         let first = true
         for (let feature of features.features) {
             let t = this.svgOfFeature(feature);
-            layers[0] = layers[0].concat(t[0][0])
-            layers[1].push(t[0][1])
+            elements = elements.concat(t[0])
+   
             if (first) {
                 bbox = t[1]
                 first = false;
@@ -138,13 +136,8 @@ class SVGBuilder extends Converter {
                 bbox = mergeBBox(bbox, t[1])
             }
         }
-        let ans : JSX.Element[] = []
-        // flatten manually
-        for (let s of layers[0]) {
-            ans = ans.concat(s)
-        }
-        ans = ans.concat(layers[1])
-        return [ans, bbox];
+
+        return [elements, bbox];
     }
 
     /**
@@ -153,44 +146,40 @@ class SVGBuilder extends Converter {
      * @param feature
      * @returns
      */
-    private svgOfFeature(feature: GeoJSON.Feature): [[Array<JSX.Element>, JSX.Element], SVGBBox] {
+    private svgOfFeature(feature: GeoJSON.Feature): [Array<JSX.Element>, SVGBBox] {
         let [els, bbox] = this.svgOfGeometry(feature.geometry);
         let n = getShapeName(feature.properties)
         let shapeId = this.getNextKey()
         let animateId = this.getNextKey()
-        els = [<g id={`${shapeId}`} fill={this.getNextColor(n)}>
+        els = [<g id={`${shapeId}`} fill={this.getNextColor(n)} onMouseMove={(e)=>{
+            // TODO: hack
+            let lbl = document.getElementById(TEXT_LABEL_ID)!
+            lbl.innerText = n
+            lbl.style.left = `${e.nativeEvent.clientX}px`
+            lbl.style.top = `${e.nativeEvent.clientY}px`
+            lbl.style.visibility = "visible"
+        }}
+        onMouseOut={() => {
+            let lbl = document.getElementById(TEXT_LABEL_ID)!
+            lbl.style.visibility = "hidden"
+        }}>
             {els}
         </g>]
-        els.push(
-            <animate 
-                href={`#${animateId}`} 
-                attributeName="visibility" 
-                values="visible;hidden" 
-                begin={`${shapeId}.mouseenter`} 
-                end={`${shapeId}.mouseleave`} 
-                cursor={"pointer"}
-                dur="2s" 
-                fill="remove"
-            />);
-        return [[
-            els, 
-            <text 
-                x={`${bbox[0]+bbox[2]/2}`} 
-                y={`${bbox[1]+bbox[3]/2}`} 
-                dominantBaseline="middle" 
-                textAnchor="middle" 
-                fontSize={`${STROKE_WIDTH * 10}px`} 
-                key={this.getNextKey()}
-                id={`${animateId}`}
-                visibility="hidden"
-                style={{
-                    filter: "url(#textbg)"
-                }}
-                pointerEvents="none"
-                // style={'filter:url("#textbg")'}
-            >
-                {n}
-            </text>], bbox]
+        // els.push(
+        //     <animate 
+        //         href={`#${animateId}`} 
+        //         attributeName="visibility" 
+        //         values="visible;hidden" 
+        //         begin={`${shapeId}.mouseenter`} 
+        //         end={`${shapeId}.mouseleave`} 
+        //         cursor={"pointer"}
+        //         dur="2s" 
+        //         fill="remove"
+        //     />);
+        return [
+            els,  
+            
+            bbox]
     }
 
     /**

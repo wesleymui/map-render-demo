@@ -118,6 +118,21 @@ function App() {
             initialViewBox={converter.getBBox().join(' ')}
         />
         }
+        <div  
+            id="countryTextLabel"
+            style={{
+                pointerEvents: "none",
+                // visibility: "hidden",
+                // fontSize: `${STROKE_WIDTH * 10}px`,
+                textAnchor: "middle",
+                dominantBaseline: "middle",
+                position: "fixed",
+                backgroundColor: "white",
+                // width: "300px",
+                // height: "300px",
+            }}
+        >
+        </div>
     </div>
     </>
   );
