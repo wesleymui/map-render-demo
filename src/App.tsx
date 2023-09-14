@@ -16,7 +16,6 @@ function App() {
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
-  const [dbfData, setDbfData] = useState<DataTable| null>(null);
 
   // A list of all accepted file types.
   const accept: string =
@@ -117,7 +116,7 @@ function App() {
       {inputError ? <p>{inputError}</p> : ''}
       {converter &&
         <MapNav
-            svgContent={converter.createSVG()}
+            svgContent={converter.createSVG(0.7)}
             width={800}
             height={800}
             initialViewBox={converter.getBBox().join(' ')}

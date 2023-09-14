@@ -18,6 +18,8 @@ class SVGBuilder extends Converter {
     private elementNumber = 0;
     private bbox : SVGBBox = [0,0,0,0]
     private cached : JSX.Element[] = []
+    private precision : number = 0;
+    private decimalPlaces : number = Math.pow(10,10);
 
     /**
      * This returns the index of the next SVG element and increments an internal counter.
@@ -65,10 +67,14 @@ class SVGBuilder extends Converter {
      *
      * @returns A <svg></svg> populated with svg elements.
      */
-    public createSVG(refresh?:boolean): Array<JSX.Element> {
-        if (!refresh && this.cached.length != 0) {
+    public createSVG(precision: number, refresh?:boolean): Array<JSX.Element> {
+        
+        if (precision === this.precision && !refresh && this.cached.length != 0) {
             return this.cached
         }
+        precision %= 1
+        this.precision = precision
+        this.decimalPlaces = Math.pow(10,Math.floor((1-precision)*10))
         this.elementNumber = 0;
 
         let prelude = [
@@ -162,17 +168,10 @@ class SVGBuilder extends Converter {
         let n = getShapeName(feature.properties)
         let shapeId = this.getNextKey()
         let animateId = this.getNextKey()
+        console.log(`shape name : `)
+        console.log(feature.properties)
         els = [<g id={`${shapeId}`} fill={this.getNextColor(n)}>
             {els}
-            {/* <rect 
-                x={`${bbox[0]}`} 
-                y={`${bbox[1]}`} 
-                width={`${bbox[2]}`} 
-                height={`${bbox[3]}`}
-                fillOpacity={0}
-                fill="#ffffffff"
-                stroke="black"
-                strokeWidth={1}></rect> */}
         </g>]
         els.push(
             <animate 
@@ -219,11 +218,11 @@ class SVGBuilder extends Converter {
     private isPosition(p: GeoJSON.Position): [number, number, number] {
         let ans: [number, number, number] = [-1, -1, -1];
         if (p.length === 2 || p.length === 3) {
-            ans[0] = p[0];
-            ans[1] = p[1] * -1;
+            ans[0] = Math.floor(p[0]* this.decimalPlaces)/this.decimalPlaces
+            ans[1] = Math.floor(p[1]* this.decimalPlaces)/this.decimalPlaces * -1;
 
             if (p[2] !== undefined) {
-                ans[2] = p[2];
+                ans[2] = Math.floor(p[2]* this.decimalPlaces)/this.decimalPlaces
             }
             return ans;
         }
@@ -267,11 +266,28 @@ class SVGBuilder extends Converter {
             );
         }
         let b : SVGBBox = [MAX_VAL, MAX_VAL,0,0]
+        let ctr = 0;
         return [(
             <polyline
                 points={coordinates
+                    .filter((x,i) => {  
+                        ctr+=this.precision;
+                        if (ctr >= 1) {
+                            ctr-= 1
+                            return false;
+                        }
+                        return true;
+                    })
                     .map((c) => {
                         return this.isPosition(c);
+                    })
+                    .filter(([x,y,z], i, a) => {
+                        if (i !== 0) {
+                            if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
+                                return false
+                            }
+                        }
+                        return true
                     })
                     .map((c) => {
                         addPointToLocalBBox(c[0], c[1], b)
@@ -298,9 +314,24 @@ class SVGBuilder extends Converter {
         if (coordinates.length < 1 || coordinates[0].length < 1) {
             throw new Error("No bounding polygon specified");
         }
+        let ctr = 0;
         coordinates = coordinates.map((shp) => {
-            return shp.map((p) => this.isPosition(p));
-        });
+            return shp.filter(x=>{
+                ctr+=this.precision;
+                if (ctr >= 1) {
+                    ctr-= 1
+                    return false;
+                }
+                return true;
+            }).map((p) => this.isPosition(p));
+        }).filter(([x,y,z], i, a) => {
+            if (i !== 0) {
+                if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
+                    return false
+                }
+            }
+            return true
+        })
 
         let boundingShape = coordinates[0];
         // note that the zeroth path is counter clockwise
