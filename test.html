@@ -4,12 +4,20 @@
         <title> test </title>
     </head>
     <body>
+      <script>
+        function k(z) {
+          console.log(z)
+        }
+      </script>
         <svg width="500" height="200" xmlns="http://www.w3.org/2000/svg" onclick="alert('click!')">
             <!-- Create a clickable rectangle -->
             <g id="zzs" cursor="pointer"> 
                 <rect x="50" y="50" width="100" height="50" fill="blue"  ></rect>
                 <circle cx="25" cy="25" r="10" fill="black"   />
             </g>
+            <script>
+              alert(1)
+            </script>
             
               
       
@@ -27,7 +35,7 @@
                   </feMerge>
                 </filter>
               </defs>
-            <g id="krty" visibility="hidden">
+            <g id="krty" visibility="hidden" onmousemove="k(123)">
                 <text x="100" y="100" font-size="15" dy="0" filter="url(#solid)">
                     <tspan dy=".6em">tspan line 1</tspan>
                     <tspan x="10" dy="1.2em">tspan line 2</tspan>

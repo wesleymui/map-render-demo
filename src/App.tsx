@@ -109,6 +109,9 @@ function App() {
   );
 
   return (
+    <>
+    <script type="text/javascript" src="smil-in-javascript.js"></script>
+    <script type="text/javascript" src="web-animations.js"></script>
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
@@ -123,6 +126,7 @@ function App() {
         />
         }
     </div>
+    </>
   );
 }
 
