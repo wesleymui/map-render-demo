@@ -1,19 +1,22 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
-import parse from 'dbf';
+import { Dbf } from 'dbf-reader';
+import { DataTable } from 'dbf-reader/models/dbf-file';
+import { Buffer } from 'buffer';
 import tj from 'togeojson';
 import './App.css';
 import { convertGeoJSON } from './geojson2svg';
 import MapNav from './components/MapNav';
 import { Converter } from './geojson2svg/converter';
+window.Buffer = Buffer;
 
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
-//   const [svgElements, setSvgElements] = useState<JSX.Element[]>([])
+  const [dbfData, setDbfData] = useState<DataTable| null>(null);
 
   // A list of all accepted file types.
   const accept: string =
@@ -81,12 +84,16 @@ function App() {
           }
           // Handle DBF conversion to GeoJSON
           else if (/.dbf/.test(fileList[i].name)) {
-            reader.onload = (e) => {
-              const buffer = e.target?.result as ArrayBuffer;
-              const parsedData = parse(buffer);
-              setGeoJsonData(parsedData.records);
-            };
-            reader.readAsArrayBuffer(fileList[i]);
+              reader.readAsArrayBuffer(fileList[i]);
+              reader.onload = () => {
+                var arrayBuffer: ArrayBuffer = reader.result as ArrayBuffer;
+                if (arrayBuffer) {
+                  let buffer: Buffer = Buffer.from(arrayBuffer);
+                  let datatable:DataTable = Dbf.read(buffer);
+                  console.log(datatable);
+                  setDbfData(datatable);
+                }
+              };
           }
         }
 
