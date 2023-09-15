@@ -16,6 +16,7 @@ function App() {
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
+  const [dbfData, setDbfData] = useState<DataTable| null>(null);
 
   // A list of all accepted file types.
   const accept: string =
