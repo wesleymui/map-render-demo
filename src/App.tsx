@@ -11,6 +11,42 @@ import MapNav from './components/MapNav';
 import { Converter } from './geojson2svg/converter';
 window.Buffer = Buffer;
 
+function mergeData(gjson : GeoJSON.GeoJSON | null , dbf : DataTable| null) : GeoJSON.GeoJSON | null {
+  console.log("MERGING DATA")
+  console.log(gjson)
+  console.log(dbf)
+  if (!dbf && gjson) {
+    return gjson
+  }
+  if (!gjson) {
+    return null
+  }
+  // go through looking for features
+  let featureNo = 0;
+  function visit(gjson : GeoJSON.GeoJSON) {
+    switch(gjson.type) {
+      case 'Feature': {
+        gjson.properties = dbf?.rows[featureNo]
+        featureNo++;
+        break;
+      }
+      case 'FeatureCollection': {
+        for (let f of gjson.features) {
+          visit(f)
+        }
+        break;
+      }
+        
+      default:
+          break;
+    }
+  }
+  visit(gjson)
+  return gjson
+}
+
+
+
 function App() {
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
@@ -38,6 +74,8 @@ function App() {
         // TODO: Handle more file extensions listed in the accept string.
         // TODO: Verify files more rigorously (not through file extension).
         // TODO: Verify file combinations.
+        let gjson : null | GeoJSON.GeoJSON = null;
+        let dtable : null | DataTable = null
         for (let i = 0; i < fileList.length; i += 1) {
           if (!/.(shp|dbf|json|kml)/.test(fileList[i].name)) {
             setInputError('File types must be .shp, .dbf, .json, or .kml');
@@ -49,9 +87,14 @@ function App() {
             reader.onload = async (e) => {
               if (e.target?.result) {
                 const arrayBuffer = e.target.result as ArrayBuffer;
-                const result = await shp.read(arrayBuffer);
+                let result = await shp.read(arrayBuffer);
+                gjson = result
+                result = mergeData(result, dtable)
                 setGeoJsonData(result);
-                setConverter(convertGeoJSON.createConverter(result))
+                if (result !== null) {
+                  setConverter(convertGeoJSON.createConverter(result))
+                }
+                
               }
             };
             reader.readAsArrayBuffer(fileList[i]);
@@ -90,8 +133,14 @@ function App() {
                 if (arrayBuffer) {
                   let buffer: Buffer = Buffer.from(arrayBuffer);
                   let datatable:DataTable = Dbf.read(buffer);
-                  console.log(datatable);
+                  let merged = mergeData(gjson, datatable)
+                  dtable = datatable
                   setDbfData(datatable);
+                  setGeoJsonData(merged)
+                  if (merged !== null) {
+                    setConverter(convertGeoJSON.createConverter(merged))
+                  } 
+                 
                 }
               };
           }
