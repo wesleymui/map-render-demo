@@ -365,7 +365,7 @@ class SVGBuilder extends Converter {
         if (isGeometryCollection(geometry)) {
             geometry.geometries.forEach((g, i) => {
                 let t = this.svgOfGeometry(g)
-                elements.concat(t[0])
+                elements = elements.concat(t[0])
                 if (i === 0) {
                     b = t[1]
                 } else {
