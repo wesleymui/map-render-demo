@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
 import { Dbf } from 'dbf-reader';
@@ -12,7 +12,6 @@ import { Converter } from './geojson2svg/converter';
 window.Buffer = Buffer;
 
 function App() {
-  const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
@@ -29,84 +28,113 @@ function App() {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       // Cleanup.
       setInputError('');
-      fileUrls.forEach((file: string) => URL.revokeObjectURL(file));
+      setGeoJsonData(null);
+      setConverter(null);
+      setDbfData(null);
 
-      // Load each new file as a blob URL.
+      // Input File List
       const fileList: FileList | null = event.target.files;
+      // New File List
+      const files : File[] = [];
       if (fileList) {
-        // Validate File Types.
-        // TODO: Handle more file extensions listed in the accept string.
-        // TODO: Verify files more rigorously (not through file extension).
-        // TODO: Verify file combinations.
+        // Iterate and insert into a new file list.
         for (let i = 0; i < fileList.length; i += 1) {
-          if (!/.(shp|dbf|json|kml)/.test(fileList[i].name)) {
-            setInputError('File types must be .shp, .dbf, .json, or .kml');
-            return;
-          }
-          const reader = new FileReader();
-          // Handle shapefile conversion to GeoJSON
-          if (/.shp/.test(fileList[i].name)) {
-            reader.onload = async (e) => {
-              if (e.target?.result) {
-                const arrayBuffer = e.target.result as ArrayBuffer;
-                const result = await shp.read(arrayBuffer);
-                setGeoJsonData(result);
-                setConverter(convertGeoJSON.createConverter(result))
-              }
-            };
-            reader.readAsArrayBuffer(fileList[i]);
-          }
-          // Handle KML conversion to GeoJSON
-          else if (/.kml/.test(fileList[i].name)) {
-            reader.onload = (e) => {
-              if (e.target?.result) {
-                const parser = new DOMParser();
-                const kml = parser.parseFromString(
-                  e.target.result as string,
-                  'text/xml'
-                );
-                const converted = tj.kml(kml);
-                setGeoJsonData(converted);
-                setConverter(convertGeoJSON.createConverter(converted))
-              }
-            };
-            reader.readAsText(fileList[i]);
-          }
-          // Handle JSON conversion to GeoJSON
-          else if (/.json/.test(fileList[i].name)) {
-            reader.onload = (e) => {
-              const content = e.target?.result as string;
-              const geojsonData = JSON.parse(content);
-              setGeoJsonData(geojsonData);
-              setConverter(convertGeoJSON.createConverter(geojsonData))
-            };
-            reader.readAsText(fileList[i]);
-          }
-          // Handle DBF conversion to GeoJSON
-          else if (/.dbf/.test(fileList[i].name)) {
-              reader.readAsArrayBuffer(fileList[i]);
-              reader.onload = () => {
-                var arrayBuffer: ArrayBuffer = reader.result as ArrayBuffer;
-                if (arrayBuffer) {
-                  let buffer: Buffer = Buffer.from(arrayBuffer);
-                  let datatable:DataTable = Dbf.read(buffer);
-                  console.log(datatable);
-                  setDbfData(datatable);
-                }
-              };
-          }
+          files.push(fileList[i]);
         }
 
-        const newFileUrls: string[] = [];
-        for (let i = 0; i < fileList.length; i += 1) {
-          newFileUrls.push(URL.createObjectURL(fileList[i]));
+        // Sort by file extension.
+        files.sort(((a, b) => {
+          const aFileExt : string | undefined = a.name.split('.').pop();
+          const bFileExt : string | undefined = b.name.split('.').pop();
+          if (aFileExt && bFileExt) {
+            // Sort both file extensions alphabetically.
+            if (aFileExt < bFileExt) {
+              return -1;
+            } else if (aFileExt > bFileExt) {
+              return 1;
+            }
+          } else if (aFileExt && !bFileExt) {
+            // Move file without no extension to the back.
+            return -1;
+          } else if (!aFileExt && bFileExt) {
+            // Move file without no extension to the back.
+            return 1;
+          } else {
+            // Sort file names alphabetically.
+            if (a.name < b.name) {
+              return -1;
+            } else if (a.name > b.name) {
+              return 1;
+            }
+          }
+          return 0;
+        }));
+      }
+
+      // Handle loading files.
+      // TODO: Handle more file extensions listed in the accept string.
+      // TODO: Verify files more rigorously (not through file extension).
+      // TODO: Verify file combinations.
+      if (files.length === 1 && files[0].name.split('.').pop() === 'json') {
+        // Handle shape file conversion to GeoJSON.
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const content = e.target?.result as string;
+          const geojsonData = JSON.parse(content);
+          setGeoJsonData(geojsonData);
+          setConverter(convertGeoJSON.createConverter(geojsonData))
+        };
+        reader.readAsText(files[0]);
+      } else if (files.length === 1 && files[0].name.split('.').pop() === 'kml') {
+        // Handle KML conversion to GeoJSON.
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          if (e.target?.result) {
+            const parser = new DOMParser();
+            const kml = parser.parseFromString(
+              e.target.result as string,
+              'text/xml'
+            );
+            const converted = tj.kml(kml);
+            setGeoJsonData(converted);
+            setConverter(convertGeoJSON.createConverter(converted))
+          }
+        };
+        reader.readAsText(files[0]);
+      } else if (files.length === 2 
+          && files[0].name.split('.').pop() === 'dbf'
+          && files[1].name.split('.').pop() === 'shp'
+        ) {
+          // Handle shape file conversion to GeoJSON.
+          const shpReader = new FileReader();
+          shpReader.onload = async (e) => {
+            if (e.target?.result) {
+              const arrayBuffer = e.target.result as ArrayBuffer;
+              const result = await shp.read(arrayBuffer);
+              setGeoJsonData(result);
+              setConverter(convertGeoJSON.createConverter(result));
+            }
+          };
+          shpReader.readAsArrayBuffer(files[1]);
+
+          // Handle DBF conversion to GeoJSON
+          const dbfReader = new FileReader();
+          dbfReader.onload = () => {
+            var arrayBuffer: ArrayBuffer = dbfReader.result as ArrayBuffer;
+            if (arrayBuffer) {
+              let buffer: Buffer = Buffer.from(arrayBuffer);
+              let dataTable:DataTable = Dbf.read(buffer);
+              setDbfData(dataTable);
+            }
+          };
+          dbfReader.readAsArrayBuffer(files[0]);
+        } else if (files.reduce((acc, curr) => acc || /.(dbf|shp)$/.test(curr.name), false)) {
+          setInputError('To load a shape file map, upload 1 .shp, and 1 .dbf file.');
+        } else {
+          setInputError('To load a map, upload 1 combination of .shp and .dbf file, 1 .json file, or 1 .kml file.');
         }
-        setFileUrls(newFileUrls);
-      } else {
-        // TODO: Warn the user that the file list is null.
-      }   
     },
-    [setInputError, fileUrls, setFileUrls]
+    [],
   );
 
   return (
