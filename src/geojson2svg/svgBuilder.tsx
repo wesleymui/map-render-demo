@@ -4,12 +4,12 @@ import { SVGBBox , addPointToLocalBBox, mergeBBox} from "./SVGBBox";
 import { isGeometry, isGeometryCollection } from "./utility";
 import L from "leaflet";
 import { getShapeName } from "./labels";
-import { url } from "inspector";
+// import { useRef } from "react";
 
 const STROKE_WIDTH = 0.1;
 const STROKE_COLOR = "black";
 const MAX_VAL = Number.MAX_SAFE_INTEGER
-
+const TEXT_LABEL_ID = "countryTextLabel"
 
 
 
@@ -18,6 +18,9 @@ class SVGBuilder extends Converter {
     private elementNumber = 0;
     private bbox : SVGBBox = [0,0,0,0]
     private cached : JSX.Element[] = []
+    private precision : number = 0;
+    private decimalPlaces : number = Math.pow(10,10);
+    
 
     /**
      * This returns the index of the next SVG element and increments an internal counter.
@@ -26,7 +29,7 @@ class SVGBuilder extends Converter {
      */
     private getNextKey(): string {
         this.elementNumber++;
-        return this.elementNumber.toString();
+        return "eno" + this.elementNumber.toString();
     }
 
     private static makeid(length : number) : string {
@@ -65,30 +68,21 @@ class SVGBuilder extends Converter {
      *
      * @returns A <svg></svg> populated with svg elements.
      */
-    public createSVG(refresh?:boolean): Array<JSX.Element> {
-        if (!refresh && this.cached.length != 0) {
+    public createSVG(precision: number, refresh?:boolean): Array<JSX.Element> {
+        
+        if (precision === this.precision && !refresh && this.cached.length != 0) {
             return this.cached
         }
+        this.precision = precision
+        this.decimalPlaces = Math.pow(10,Math.floor((1-precision)*10))
         this.elementNumber = 0;
 
-        let prelude = [
-            <defs>
-                <filter x="-0.1" y="-0.1" width="1.3" height="1.3" id="textbg">
-                <feMorphology in="SourceAlpha" result="MORPH" operator="dilate" radius="2" />
-                <feColorMatrix in="MORPH" result="WHITENED" type="matrix" values="-1 0 0 0 1, 0 -1 0 0 1, 0 0 -1 0 1, 0 0 0 1 0"/>
-                <feMerge>
-                    <feMergeNode in="WHITENED"/>
-                    <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-                </filter>
-            </defs>
-        ]
+
         switch (this.mapData.type) {
             case "Feature":{
-                let [[els,txt], bbox] = this.svgOfFeature(this.mapData);
+                let [els, bbox] = this.svgOfFeature(this.mapData);
                 this.bbox = bbox
-                els.push(txt)
-                els.unshift(...prelude)
+                // els.push(lbl)
                 this.cached = els
                 return els
             }
@@ -97,7 +91,7 @@ class SVGBuilder extends Converter {
             case "FeatureCollection": {
                 let [els, bbox] =this.svgOfFeatureCollection(this.mapData);
                 this.bbox = bbox
-                els.unshift(...prelude)
+                // els.push(lbl)
                 this.cached = els
                 return els
             }
@@ -105,7 +99,7 @@ class SVGBuilder extends Converter {
                 if (isGeometry(this.mapData)) {
                     let [els, bbox] =this.svgOfGeometry(this.mapData);
                     this.bbox = bbox
-                    els.unshift(...prelude)
+                    // els.push(lbl)
                     this.cached = els
                     return els
                 } else {
@@ -128,13 +122,13 @@ class SVGBuilder extends Converter {
     private svgOfFeatureCollection(
         features: GeoJSON.FeatureCollection
     ): [Array<JSX.Element>, SVGBBox] {
-        let layers : [Array<JSX.Element>[], JSX.Element[]] = [[],[]]
+        let elements : JSX.Element[] = []
         let bbox : SVGBBox = [MAX_VAL, MAX_VAL, 0,0]
         let first = true
         for (let feature of features.features) {
             let t = this.svgOfFeature(feature);
-            layers[0] = layers[0].concat(t[0][0])
-            layers[1].push(t[0][1])
+            elements = elements.concat(t[0])
+   
             if (first) {
                 bbox = t[1]
                 first = false;
@@ -142,13 +136,8 @@ class SVGBuilder extends Converter {
                 bbox = mergeBBox(bbox, t[1])
             }
         }
-        let ans : JSX.Element[] = []
-        // flatten manually
-        for (let s of layers[0]) {
-            ans = ans.concat(s)
-        }
-        ans = ans.concat(layers[1])
-        return [ans, bbox];
+
+        return [elements, bbox];
     }
 
     /**
@@ -157,53 +146,40 @@ class SVGBuilder extends Converter {
      * @param feature
      * @returns
      */
-    private svgOfFeature(feature: GeoJSON.Feature): [[Array<JSX.Element>, JSX.Element], SVGBBox] {
+    private svgOfFeature(feature: GeoJSON.Feature): [Array<JSX.Element>, SVGBBox] {
         let [els, bbox] = this.svgOfGeometry(feature.geometry);
         let n = getShapeName(feature.properties)
         let shapeId = this.getNextKey()
         let animateId = this.getNextKey()
-        els = [<g id={`${shapeId}`} fill={this.getNextColor(n)}>
+        els = [<g id={`${shapeId}`} fill={this.getNextColor(n)} onMouseMove={(e)=>{
+            // TODO: hack
+            let lbl = document.getElementById(TEXT_LABEL_ID)!
+            lbl.innerText = n
+            lbl.style.left = `${e.nativeEvent.clientX}px`
+            lbl.style.top = `${e.nativeEvent.clientY}px`
+            lbl.style.visibility = "visible"
+        }}
+        onMouseOut={() => {
+            let lbl = document.getElementById(TEXT_LABEL_ID)!
+            lbl.style.visibility = "hidden"
+        }}>
             {els}
-            {/* <rect 
-                x={`${bbox[0]}`} 
-                y={`${bbox[1]}`} 
-                width={`${bbox[2]}`} 
-                height={`${bbox[3]}`}
-                fillOpacity={0}
-                fill="#ffffffff"
-                stroke="black"
-                strokeWidth={1}></rect> */}
         </g>]
-        els.push(
-            <animate 
-                href={`#${animateId}`} 
-                attributeName="visibility" 
-                values="visible;hidden" 
-                begin={`${shapeId}.mouseenter`} 
-                end={`${shapeId}.mouseleave`} 
-                cursor={"pointer"}
-                dur="indefinite" 
-                fill="remove"
-            />);
-        return [[
-            els, 
-            <text 
-                x={`${bbox[0]+bbox[2]/2}`} 
-                y={`${bbox[1]+bbox[3]/2}`} 
-                dominantBaseline="middle" 
-                textAnchor="middle" 
-                fontSize={`${STROKE_WIDTH * 10}px`} 
-                key={this.getNextKey()}
-                id={`${animateId}`}
-                visibility="hidden"
-                style={{
-                    filter: "url(#textbg)"
-                }}
-                pointerEvents="none"
-                // style={'filter:url("#textbg")'}
-            >
-                {n}
-            </text>], bbox]
+        // els.push(
+        //     <animate 
+        //         href={`#${animateId}`} 
+        //         attributeName="visibility" 
+        //         values="visible;hidden" 
+        //         begin={`${shapeId}.mouseenter`} 
+        //         end={`${shapeId}.mouseleave`} 
+        //         cursor={"pointer"}
+        //         dur="2s" 
+        //         fill="remove"
+        //     />);
+        return [
+            els,  
+            
+            bbox]
     }
 
     /**
@@ -219,11 +195,11 @@ class SVGBuilder extends Converter {
     private isPosition(p: GeoJSON.Position): [number, number, number] {
         let ans: [number, number, number] = [-1, -1, -1];
         if (p.length === 2 || p.length === 3) {
-            ans[0] = p[0];
-            ans[1] = p[1] * -1;
+            ans[0] = Math.floor(p[0]* this.decimalPlaces)/this.decimalPlaces
+            ans[1] = Math.floor(p[1]* this.decimalPlaces)/this.decimalPlaces * -1;
 
             if (p[2] !== undefined) {
-                ans[2] = p[2];
+                ans[2] = Math.floor(p[2]* this.decimalPlaces)/this.decimalPlaces
             }
             return ans;
         }
@@ -267,11 +243,28 @@ class SVGBuilder extends Converter {
             );
         }
         let b : SVGBBox = [MAX_VAL, MAX_VAL,0,0]
+        let ctr = 0;
         return [(
             <polyline
                 points={coordinates
+                    .filter((x,i) => {  
+                        ctr+=this.precision;
+                        if (ctr >= 1) {
+                            ctr -= 1
+                            return false;
+                        }
+                        return true;
+                    })
                     .map((c) => {
                         return this.isPosition(c);
+                    })
+                    .filter(([x,y,z], i, a) => {
+                        if (i !== 0) {
+                            if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
+                                return false
+                            }
+                        }
+                        return true
                     })
                     .map((c) => {
                         addPointToLocalBBox(c[0], c[1], b)
@@ -298,11 +291,34 @@ class SVGBuilder extends Converter {
         if (coordinates.length < 1 || coordinates[0].length < 1) {
             throw new Error("No bounding polygon specified");
         }
+        let ctr = 0;
         coordinates = coordinates.map((shp) => {
-            return shp.map((p) => this.isPosition(p));
-        });
-
+            shp= shp
+            .filter(x=>{
+                ctr+=this.precision;
+                if (ctr >= 1) {
+                    ctr-= 1
+                    return false;
+                }
+                return true;
+            })
+            .map((p) => this.isPosition(p))
+            .filter(([x,y,z], i, a) => {
+                if (i !== 0) {
+                    if (x === a[i-1][0] && y === a[i-1][1] && z === a[i-1][2] ) {
+                        return false
+                    }
+                }
+                return true
+            })
+            return shp
+        })
         let boundingShape = coordinates[0];
+        if (boundingShape === undefined || boundingShape[0] === undefined) {
+            return [
+                <></>, [0,0,0,0]
+            ]
+        }
         // note that the zeroth path is counter clockwise
         // and all other paths are counter
         let b : SVGBBox= [boundingShape[0][0],boundingShape[0][1],0,0]
@@ -349,7 +365,7 @@ class SVGBuilder extends Converter {
         if (isGeometryCollection(geometry)) {
             geometry.geometries.forEach((g, i) => {
                 let t = this.svgOfGeometry(g)
-                elements.concat(t[0])
+                elements = elements.concat(t[0])
                 if (i === 0) {
                     b = t[1]
                 } else {

@@ -11,11 +11,47 @@ import MapNav from './components/MapNav';
 import { Converter } from './geojson2svg/converter';
 window.Buffer = Buffer;
 
+function mergeData(gjson : GeoJSON.GeoJSON | null , dbf : DataTable| null) : GeoJSON.GeoJSON | null {
+  console.log("MERGING DATA")
+  console.log(gjson)
+  console.log(dbf)
+  if (!dbf && gjson) {
+    return gjson
+  }
+  if (!gjson) {
+    return null
+  }
+  // go through looking for features
+  let featureNo = 0;
+  function visit(gjson : GeoJSON.GeoJSON) {
+    switch(gjson.type) {
+      case 'Feature': {
+        gjson.properties = dbf?.rows[featureNo]
+        featureNo++;
+        break;
+      }
+      case 'FeatureCollection': {
+        for (let f of gjson.features) {
+          visit(f)
+        }
+        break;
+      }
+        
+      default:
+          break;
+    }
+  }
+  visit(gjson)
+  return gjson
+}
+
+
+
 function App() {
   const [inputError, setInputError] = useState<string>('');
-  const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
+  // const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
-  const [dbfData, setDbfData] = useState<DataTable| null>(null);
+  // const [dbfData, setDbfData] = useState<DataTable| null>(null);
 
   // A list of all accepted file types.
   const accept: string =
@@ -28,9 +64,7 @@ function App() {
     (event: React.ChangeEvent<HTMLInputElement>) => {
       // Cleanup.
       setInputError('');
-      setGeoJsonData(null);
       setConverter(null);
-      setDbfData(null);
 
       // Input File List
       const fileList: FileList | null = event.target.files;
@@ -81,7 +115,6 @@ function App() {
         reader.onload = (e) => {
           const content = e.target?.result as string;
           const geojsonData = JSON.parse(content);
-          setGeoJsonData(geojsonData);
           setConverter(convertGeoJSON.createConverter(geojsonData))
         };
         reader.readAsText(files[0]);
@@ -96,23 +129,29 @@ function App() {
               'text/xml'
             );
             const converted = tj.kml(kml);
-            setGeoJsonData(converted);
             setConverter(convertGeoJSON.createConverter(converted))
           }
         };
         reader.readAsText(files[0]);
-      } else if (files.length === 2 
+      } else if ( (files.length === 2 
           && files[0].name.split('.').pop() === 'dbf'
-          && files[1].name.split('.').pop() === 'shp'
+          && files[1].name.split('.').pop() === 'shp') || (files.length === 3
+            && files[0].name.split('.').pop() === 'dbf'
+            && files[1].name.split('.').pop() === 'shp' && files[2].name.split('.').pop() === 'shx' )
         ) {
+          let gjson : GeoJSON.GeoJSON | null = null
+          let dtable : DataTable | null = null
           // Handle shape file conversion to GeoJSON.
           const shpReader = new FileReader();
           shpReader.onload = async (e) => {
             if (e.target?.result) {
               const arrayBuffer = e.target.result as ArrayBuffer;
-              const result = await shp.read(arrayBuffer);
-              setGeoJsonData(result);
-              setConverter(convertGeoJSON.createConverter(result));
+              gjson = await shp.read(arrayBuffer);
+              let result = mergeData(gjson, dtable)
+              if (result) {
+                setConverter(convertGeoJSON.createConverter(result));
+              }
+              
             }
           };
           shpReader.readAsArrayBuffer(files[1]);
@@ -123,8 +162,11 @@ function App() {
             var arrayBuffer: ArrayBuffer = dbfReader.result as ArrayBuffer;
             if (arrayBuffer) {
               let buffer: Buffer = Buffer.from(arrayBuffer);
-              let dataTable:DataTable = Dbf.read(buffer);
-              setDbfData(dataTable);
+              dtable = Dbf.read(buffer);
+              let result = mergeData(gjson, dtable)
+              if (result) {
+                setConverter(convertGeoJSON.createConverter(result));
+              }
             }
           };
           dbfReader.readAsArrayBuffer(files[0]);
@@ -138,6 +180,7 @@ function App() {
   );
 
   return (
+    <>
     <div className="App">
       <FileInput id="map-file-input" accept={accept} onChange={handleFiles}>
         Choose a Map to Render:
@@ -145,13 +188,29 @@ function App() {
       {inputError ? <p>{inputError}</p> : ''}
       {converter &&
         <MapNav
-            svgContent={converter.createSVG()}
+            svgContent={converter.createSVG(0.7)}
             width={800}
             height={800}
             initialViewBox={converter.getBBox().join(' ')}
         />
         }
+        <div  
+            id="countryTextLabel"
+            style={{
+                pointerEvents: "none",
+                // visibility: "hidden",
+                // fontSize: `${STROKE_WIDTH * 10}px`,
+                textAnchor: "middle",
+                dominantBaseline: "middle",
+                position: "fixed",
+                backgroundColor: "white",
+                // width: "300px",
+                // height: "300px",
+            }}
+        >
+        </div>
     </div>
+    </>
   );
 }
 
