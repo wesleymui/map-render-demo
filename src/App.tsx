@@ -1,15 +1,21 @@
 import React, { useCallback, useState } from 'react';
 import FileInput from './components/FileInput';
 import * as shp from 'shapefile';
-import parse from 'dbf';
+import { Dbf } from 'dbf-reader';
+import { DataTable } from 'dbf-reader/models/dbf-file';
+import { Buffer } from 'buffer';
 import tj from 'togeojson';
 import './App.css';
 import { convertGeoJSON } from './geojson2svg';
 import MapNav from './components/MapNav';
+import { Converter } from './geojson2svg/converter';
+window.Buffer = Buffer;
 
 function App() {
   const [inputError, setInputError] = useState<string>('');
   const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
+  const [converter, setConverter] = useState<Converter| null>(null)
+  const [dbfData, setDbfData] = useState<DataTable| null>(null);
 
   // A list of all accepted file types.
   const accept: string =
@@ -23,6 +29,8 @@ function App() {
       // Cleanup.
       setInputError('');
       setGeoJsonData(null);
+      setConverter(null);
+      setDbfData(null);
 
       // Input File List
       const fileList: FileList | null = event.target.files;
@@ -67,17 +75,19 @@ function App() {
       // TODO: Handle more file extensions listed in the accept string.
       // TODO: Verify files more rigorously (not through file extension).
       // TODO: Verify file combinations.
-      const reader = new FileReader();
       if (files.length === 1 && files[0].name.split('.').pop() === 'json') {
         // Handle shape file conversion to GeoJSON.
+        const reader = new FileReader();
         reader.onload = (e) => {
           const content = e.target?.result as string;
           const geojsonData = JSON.parse(content);
           setGeoJsonData(geojsonData);
+          setConverter(convertGeoJSON.createConverter(geojsonData))
         };
         reader.readAsText(files[0]);
       } else if (files.length === 1 && files[0].name.split('.').pop() === 'kml') {
         // Handle KML conversion to GeoJSON.
+        const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
             const parser = new DOMParser();
@@ -87,39 +97,44 @@ function App() {
             );
             const converted = tj.kml(kml);
             setGeoJsonData(converted);
+            setConverter(convertGeoJSON.createConverter(converted))
           }
         };
         reader.readAsText(files[0]);
-      } else if (files.length === 3 
+      } else if (files.length === 2 
           && files[0].name.split('.').pop() === 'dbf'
           && files[1].name.split('.').pop() === 'shp'
-          && files[2].name.split('.').pop() === 'shx'
         ) {
           // Handle shape file conversion to GeoJSON.
-          reader.onload = async (e) => {
+          const shpReader = new FileReader();
+          shpReader.onload = async (e) => {
             if (e.target?.result) {
               const arrayBuffer = e.target.result as ArrayBuffer;
               const result = await shp.read(arrayBuffer);
               setGeoJsonData(result);
+              setConverter(convertGeoJSON.createConverter(result));
             }
           };
-          reader.readAsArrayBuffer(files[1]);
+          shpReader.readAsArrayBuffer(files[1]);
 
           // Handle DBF conversion to GeoJSON
-          // TODO: Load both .shp and .dbf files together.
-          /* reader.onload = (e) => {
-            const buffer = e.target?.result as ArrayBuffer;
-            const parsedData = parse(buffer);
-            setGeoJsonData(parsedData.records);
+          const dbfReader = new FileReader();
+          dbfReader.onload = () => {
+            var arrayBuffer: ArrayBuffer = dbfReader.result as ArrayBuffer;
+            if (arrayBuffer) {
+              let buffer: Buffer = Buffer.from(arrayBuffer);
+              let dataTable:DataTable = Dbf.read(buffer);
+              setDbfData(dataTable);
+            }
           };
-          reader.readAsArrayBuffer(files[0]); */
-        } else if (files.reduce((acc, curr) => acc || /.(dbf|shp|shx)$/.test(curr.name), false)) {
-          setInputError('To load a shape file, a .shp, .shx, and .dbf file must be included.');
+          dbfReader.readAsArrayBuffer(files[0]);
+        } else if (files.reduce((acc, curr) => acc || /.(dbf|shp)$/.test(curr.name), false)) {
+          setInputError('To load a shape file map, upload 1 .shp, and 1 .dbf file.');
         } else {
-          setInputError('Can only load .shp, .shx, .dbf, .json, and .kml');
+          setInputError('To load a map, upload 1 combination of .shp and .dbf file, 1 .json file, or 1 .kml file.');
         }
     },
-    []
+    [],
   );
 
   return (
@@ -128,20 +143,14 @@ function App() {
         Choose a Map to Render:
       </FileInput>
       {inputError ? <p>{inputError}</p> : ''}
-
-      {geoJsonData &&
-        ((): JSX.Element => {
-          let converter = convertGeoJSON.createConverter(geoJsonData);
-          let elements = converter.createSVG() as Array<JSX.Element>;
-          return (
-            <MapNav
-              svgContent={elements}
-              width={800}
-              height={800}
-              initialViewBox={converter.getBBox().join(' ')}
-            />
-          );
-        })()}
+      {converter &&
+        <MapNav
+            svgContent={converter.createSVG()}
+            width={800}
+            height={800}
+            initialViewBox={converter.getBBox().join(' ')}
+        />
+        }
     </div>
   );
 }

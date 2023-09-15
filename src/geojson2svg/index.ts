@@ -1,5 +1,6 @@
 import { Converter } from "./converter";
 import { SVGBuilder } from "./svgBuilder";
+import { SVGBBox } from "./SVGBBox";
 
 /**
  * This namespace encapsulates everything needed to convert
@@ -15,6 +16,9 @@ namespace convertGeoJSON {
     export function createConverter(g: GeoJSON.GeoJSON): Converter {
         return new SVGBuilder(g);
     }
+
+    
+
 }
 
 export { convertGeoJSON };
