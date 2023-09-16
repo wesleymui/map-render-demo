@@ -2,6 +2,7 @@
 
 # geojson
 /src/geojson
+/maps
 
 # dependencies
 /node_modules

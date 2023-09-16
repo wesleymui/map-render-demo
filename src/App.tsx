@@ -52,7 +52,7 @@ function App() {
   // const [geoJsonData, setGeoJsonData] = useState<GeoJSON.GeoJSON | null>(null);
   const [converter, setConverter] = useState<Converter| null>(null)
   // const [dbfData, setDbfData] = useState<DataTable| null>(null);
-
+  const [precision, setPrecision] = useState(0)
   // A list of all accepted file types.
   const accept: string =
     '.shp, .shx, .dbf, ' + // Shape Files
@@ -186,9 +186,15 @@ function App() {
         Choose a Map to Render:
       </FileInput>
       {inputError ? <p>{inputError}</p> : ''}
+      <input type='range' value={precision} onChange={(e)=>setPrecision(parseFloat(e.target.value))} min="0" max="1" step="0.1"/>
+      <p>
+        Current Precision: {precision}
+      </p>
+      
+
       {converter &&
         <MapNav
-            svgContent={converter.createSVG(0.7)}
+            svgContent={converter.createSVG(precision)}
             width={800}
             height={800}
             initialViewBox={converter.getBBox().join(' ')}

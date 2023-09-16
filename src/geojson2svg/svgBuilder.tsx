@@ -46,7 +46,7 @@ class SVGBuilder extends Converter {
 
     private getNextColor(seed : string) : string{
         if (seed.length < 6) {
-            seed = SVGBuilder.makeid(8)
+            seed += "AAAAAAAAAAAA"
         }
         let asb16 = seed.split("")
         .map(c => {
@@ -58,7 +58,6 @@ class SVGBuilder extends Converter {
             return t.toString(16).padStart(2, "0")
         })
         .join("");
-
         return '#' + asb16.substring(0,6);
     }
 
